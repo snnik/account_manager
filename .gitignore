@@ -1,0 +1,6 @@
+.vscode/*
+.idea/*
+amenv/*
+.env
+/__pycache__/*
+*.pyc
