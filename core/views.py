@@ -3,7 +3,7 @@ from django.http import HttpResponse
 
 # Create your views here.
 def index(request):
-    return render(request, "core/base.html")
+    return render(request, "core/base_login.html")
 
 
 def delete_account(request):

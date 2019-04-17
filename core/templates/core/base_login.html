@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+      <div class="container-fluid h-100">
+    <div class="row h-75 justify-content-center align-items-center">
+      <form class="needs-validation col-auto align-self-center" novalidate>
+        <div class="form-row">
+            <div class="col">
+              <label for="validationCustomUsername">Введите логин пользователя:</label>
+              <div class="input-group">
+              <input type="text" class="form-control" id="validationCustomUsername" placeholder="Логин" aria-describedby="inputGroupPrepend" required>
+              <div class="invalid-tooltip">
+                Please choose a username.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="col">
+            <label for="exampleInputPassword1">Введите пароль:</label>
+            <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Пароль" aria-describedby="inputGroupPrepend" required>
+            <div class="invalid-tooltip">
+              Please enter password.
+            </div>
+          </div>
+        </div>
+        </br>
+        <button class="btn btn-primary" type="submit">Submit form</button>
+      </form>
+    </div>
+  </div>
+{% endblock content %}
