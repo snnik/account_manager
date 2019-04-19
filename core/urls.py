@@ -1,9 +1,9 @@
-from django.conf.urls import url, include
+from django.urls import path
 from . import views
 
 urlpatterns = [
-   url(r'^update/(?P<id>\d+)$', views.update_account),
-   url(r'^create$', views.create_account),
-   url(r'^delete$', views.delete_account),
-   url(r'^$', views.index)
+   path('update/<int:id>/', views.update_account),
+   path('create/', views.create_account),
+   path('delete/', views.delete_account),
+   path('', views.index)
 ]
