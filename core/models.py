@@ -8,7 +8,7 @@ class Services(models.Model):
     name = models.CharField(max_length=20, unique=True)
     description = models.CharField(max_length=50)
     price = models.FloatField(blank=True)
-    permm_subject = models.OneToOneField(Permission, on_delete=models.PROTECT)
+    fk_permission = models.OneToOneField(Permission, on_delete=models.PROTECT)
     status = models.BooleanField(default=True)
     is_create = models.DateTimeField(auto_now_add=True)
     is_update = models.DateTimeField(auto_now=True)
@@ -53,7 +53,7 @@ class Services(models.Model):
             log.save()
 
     def __str__(self):
-        return str(self.name)
+        return str(self.description)
 
 
 #Contract
@@ -83,7 +83,7 @@ class CustomerInfo(models.Model):
     KPP = models.CharField(validators=[d_reg], blank=True, max_length=20)
     legal_address = models.CharField(max_length=250)
     postal_address = models.CharField(max_length=250)
-    customer = models.OneToOneField(User, on_delete='CASCADE')
+    customer = models.OneToOneField(User, on_delete=models.CASCADE)
     phone_number = models.CharField(validators=[phone_regex], max_length=17)  # validators should be a list
     email_validator = EmailValidator()
     email_address = models.CharField(validators=[email_validator], max_length=15)
