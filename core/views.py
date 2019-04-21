@@ -5,7 +5,7 @@ from .models import *
 
 # Create your views here.
 def index(request):
-    print(Services.objects.count())
+    #print(Services.objects.count())
     return render(request, "core/account_list.html", context={'services': Services.objects.all()})
 
 
