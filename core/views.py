@@ -12,6 +12,7 @@ def index(request):
     context = {}
     context['services'] = Services.objects.all()
     context['username'] = auth.get_user(request).username
+    context['superuser'] = auth.get_user(request).is_superuser
     #print(Services.objects.count())
     return render(request, "core/account_list.html", context)
 
