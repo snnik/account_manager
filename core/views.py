@@ -10,11 +10,20 @@ from .models import *
 @login_required(login_url='base_login')
 def index(request):
     context = {}
+    context['contract'] = Contract.objects.all()
+    context['users'] = User.objects.all()
+    return render(request, "core/account_list.html", context)
+
+
+@login_required(login_url='base_login')
+def services_list(request):
+    context = {}
     context['services'] = Services.objects.all()
     context['username'] = auth.get_user(request).username
     context['superuser'] = auth.get_user(request).is_superuser
+    context['page_title'] = 'Панель управления'
     #print(Services.objects.count())
-    return render(request, "core/account_list.html", context)
+    return render(request, "core/services_list.html", context)
 
 
 def delete_account(request):
@@ -49,6 +58,3 @@ def login(request):
 def logout(request):
     auth.logout(request)
     return HttpResponseRedirect('/')
-
-
-def
