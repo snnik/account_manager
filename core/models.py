@@ -3,52 +3,64 @@ from django.contrib.auth.models import User, Permission
 from django.core.validators import RegexValidator, EmailValidator
 
 
-# Create your models here.
 class Services(models.Model):
     name = models.CharField(max_length=20, unique=True)
     description = models.CharField(max_length=50)
+    url = models.SlugField(unique=True, blank=False)
     price = models.FloatField(blank=True)
-    fk_permission = models.OneToOneField(Permission, on_delete=models.PROTECT)
+    fk_permission = models.OneToOneField(Permission, on_delete=models.CASCADE)
     status = models.BooleanField(default=True)
     is_create = models.DateTimeField(auto_now_add=True)
     is_update = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         # Function logging
-
         log = CoreProtocol()
-        log.user = 'user'
-        log.action = 'UPDATE SERVICE:' + str(self.pk)
+        log.user = 'Django admin'
+
+        for key in kwargs:
+            if key == 'username':
+                log.user = kwargs[key]
+
+            if key == 'action':
+                action = kwargs[key]
+
+        if self.pk is not None:
+            log.action = 'Update service ' + str(self.name) + '. ' + action
+        else:
+            log.action = 'Insert service ' + str(self.name) + '.'
 
         try:
             super(Services, self).save(*args, **kwargs)
+            #Связь с разрешениями
         except Exception:
             log.action = 'Error for Update Service:' + self.pk
-            log.action += 'Exeption:' + str(Exception) + '. Update rollback.'
+            log.action += 'Exeption:' + str(Exception) + '. Action rollback.'
         finally:
             log.save()
 
-    def not_active(self, user):
-        log = CoreProtocol()
-        log.user = user
-        log.action = 'Change status SERVICE:' + self.pk + '. Active = False'
-
+    def not_active(self, **kwargs):
         self.status = False
-        self.save()
-        log.save()
+        self.save(action='Change status SERVICE:' + self.pk + '. Active = False.')
+
+    def active(self, **kwargs):
+        self.status = True
+        self.save(action='Change status SERVICE:' + self.pk + '. Active = True.')
 
     def delete(self, user=None, using=None, keep_parents=False):
-
         log = CoreProtocol()
-        log.user = user
-        log.action = 'Delete SERVICE:' + self.pk
+
+        if user:
+            log.user = user
+        else:
+            log.user = 'Django admin'
+
+        log.action = 'Delete SERVICE: id = ' + self.pk + ', name: ' + self.name
 
         try:
             super(Services, self).delete(using=None, keep_parents=False)
         except Exception:
-
             log = 'Raise exeptions when delete Service:' + self.pk + '. Exeption:' + Exception.__str__() + '.'
-
         finally:
             log.save()
 
@@ -65,10 +77,8 @@ class Contract(models.Model):
     is_create = models.DateTimeField(auto_now_add=True)
     is_update = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        # Function logging
-
-        super(Contract, self).save(*args, **kwargs)
+    def __str__(self):
+        return self.number + ' ' + str(self.customer.name)
 
 
 # Данные о юридичском лице
@@ -90,10 +100,8 @@ class CustomerInfo(models.Model):
     is_create = models.DateTimeField(auto_now_add=True)
     is_update = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        # Function logging
-
-        super(CustomerInfo, self).save(*args, **kwargs)
+    def __str__(self):
+        return self.description
 
 
 # Log
@@ -101,3 +109,6 @@ class CoreProtocol(models.Model):
     action = models.CharField(max_length=200)
     user = models.CharField(max_length=200)
     action_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.action

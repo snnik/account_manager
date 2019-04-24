@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth
+from core.forms import CustomerForm
 from .models import *
 
 
@@ -10,6 +11,9 @@ from .models import *
 @login_required(login_url='base_login')
 def index(request):
     context = {}
+    context['services'] = Services.objects.all()
+    context['username'] = auth.get_user(request).username
+    context['superuser'] = auth.get_user(request).is_superuser
     context['contract'] = Contract.objects.all()
     context['users'] = User.objects.all()
     return render(request, "core/account_list.html", context)
@@ -34,8 +38,24 @@ def create_account(request):
     return HttpResponse("Create")
 
 
-def update_account(request, **args):
-    return HttpResponse(args)
+@login_required(login_url='base_login')
+def update_account(request, id, **args):
+    context = {}
+    context['id'] = id
+    info = CustomerInfo.objects.get(pk=id)
+
+    if request.method == 'POST':
+        form = CustomerForm(info)
+        if form.is_valid():
+            CustomerInfo.description = request.POST.get('description')
+            CustomerInfo.INN = request.POST.get('INN')
+            CustomerInfo.phone_number = request.POST.get('phone_number')
+            CustomerInfo.save()
+    else:
+         form = CustomerForm()
+
+    context['form'] = form
+    return render(request, 'core/account_detail.html', context)
 
 
 def login(request):
@@ -48,7 +68,7 @@ def login(request):
             auth.login(request, user)
             return HttpResponseRedirect('/')
         else:
-            login_error = 'User not exist'
+            login_error = 'Сожалеем, вы неправильно ввели логин или пароль'
             context = {'login_error': login_error}
             return render(request, 'core/base_login.html', context)
     else:
