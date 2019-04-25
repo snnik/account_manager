@@ -87,6 +87,8 @@ class CustomerInfo(models.Model):
                                  message="Телефонный номер должен быть иметь следующий формат: '+999999999'. "
                                          "Максимальное количество цифр 15.")
     d_reg = RegexValidator(regex=r'^\d{9,15}$', message='Введите цифры')
+    email_validator = EmailValidator()
+
     description = models.CharField(max_length=100)
     OGRN = models.CharField(validators=[d_reg], blank=True, max_length=20)
     INN = models.CharField(validators=[d_reg], blank=True, max_length=20)
@@ -95,7 +97,6 @@ class CustomerInfo(models.Model):
     postal_address = models.CharField(max_length=250)
     customer = models.OneToOneField(User, on_delete=models.CASCADE)
     phone_number = models.CharField(validators=[phone_regex], max_length=17)  # validators should be a list
-    email_validator = EmailValidator()
     email_address = models.CharField(validators=[email_validator], max_length=15)
     is_create = models.DateTimeField(auto_now_add=True)
     is_update = models.DateTimeField(auto_now=True)

@@ -1,5 +1,5 @@
 from django.contrib import auth
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth
@@ -11,9 +11,7 @@ from .models import *
 @login_required(login_url='base_login')
 def index(request):
     context = {}
-    context['services'] = Services.objects.all()
-    context['username'] = auth.get_user(request).username
-    context['superuser'] = auth.get_user(request).is_superuser
+
     context['contract'] = Contract.objects.all()
     context['users'] = User.objects.all()
     return render(request, "core/account_list.html", context)
@@ -22,9 +20,7 @@ def index(request):
 @login_required(login_url='base_login')
 def services_list(request):
     context = {}
-    context['services'] = Services.objects.all()
-    context['username'] = auth.get_user(request).username
-    context['superuser'] = auth.get_user(request).is_superuser
+
     context['page_title'] = 'Панель управления'
     #print(Services.objects.count())
     return render(request, "core/services_list.html", context)
@@ -40,22 +36,19 @@ def create_account(request):
 
 @login_required(login_url='base_login')
 def update_account(request, id, **args):
-    context = {}
-    context['id'] = id
-    info = CustomerInfo.objects.get(pk=id)
-
+    info = get_object_or_404(CustomerInfo, pk=id)
     if request.method == 'POST':
-        form = CustomerForm(info)
+        form = CustomerForm(request.POST, instance=info)
         if form.is_valid():
-            CustomerInfo.description = request.POST.get('description')
-            CustomerInfo.INN = request.POST.get('INN')
-            CustomerInfo.phone_number = request.POST.get('phone_number')
-            CustomerInfo.save()
+            info.description = request.POST.get('description')
+            info.INN = request.POST.get('INN')
+            info.phone_number = request.POST.get('phone_number')
+            info.save()
+            redirect('/', id=id)
     else:
-         form = CustomerForm()
-
-    context['form'] = form
-    return render(request, 'core/account_detail.html', context)
+        #info = CustomerInfo.objects.get(pk=id)
+        form = CustomerForm(instance=info)
+        return render(request, 'core/account_detail.html', {'form': form})
 
 
 def login(request):

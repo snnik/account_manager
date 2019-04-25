@@ -7,10 +7,15 @@
             <form method="post" action=".">{% csrf_token %}
                 {{ form.as_p }}
                 <button class="btn btn-warning">submit</button>
-                {{ request.user }}
             </form>
         </div>
     </div>
+     <div class="row">
+            <div class="col">
+                {{ info.description }}<br>
+                {{ info.INN }}
+            </div>
+        </div>
 
 </div>
 {% endblock content%}
