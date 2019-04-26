@@ -89,7 +89,7 @@ class CustomerInfo(models.Model):
     d_reg = RegexValidator(regex=r'^\d{9,15}$', message='Введите цифры')
     email_validator = EmailValidator()
 
-    description = models.CharField(max_length=100)
+    description = models.CharField(max_length=100, verbose_name='Наименование')
     OGRN = models.CharField(validators=[d_reg], blank=True, max_length=20)
     INN = models.CharField(validators=[d_reg], blank=True, max_length=20)
     KPP = models.CharField(validators=[d_reg], blank=True, max_length=20)
