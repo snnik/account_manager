@@ -36,19 +36,32 @@ def create_account(request):
 
 @login_required(login_url='base_login')
 def update_account(request, id, **args):
+    errors = ''
     info = get_object_or_404(CustomerInfo, pk=id)
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=info)
         if form.is_valid():
-            info.description = request.POST.get('description')
-            info.INN = request.POST.get('INN')
-            info.phone_number = request.POST.get('phone_number')
+            info.description = form.cleaned_data['description']
+            info.INN = form.cleaned_data['INN']
+            info.KPP = form.cleaned_data['KPP']
+            info.legal_address = form.cleaned_data['legal_address']
+            info.postal_address = form.cleaned_data['postal_address']
+            info.phone_number = form.cleaned_data['phone_number']
+            info.email_address = form.cleaned_data['email_address']
+            info.customer = form.cleaned_data['customer']
             info.save()
-            redirect('/', id=id)
-    else:
-        #info = CustomerInfo.objects.get(pk=id)
-        form = CustomerForm(instance=info)
-        return render(request, 'core/account_detail.html', {'form': form})
+            return redirect('update-account', id=id)
+        else:
+            errors = form.errors
+
+    context = {}
+    form = CustomerForm(instance=info)
+    context['form'] = form
+
+    if errors:
+        context['error_list'] = errors
+
+    return render(request, 'core/account_detail.html', context)
 
 
 def login(request):
