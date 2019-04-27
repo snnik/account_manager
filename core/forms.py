@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth.models import User
+
 from .models import *
 
 
@@ -16,4 +18,17 @@ class CustomerForm(forms.ModelForm):
             'customer': forms.widgets.Select(),
             'phone_number': forms.TextInput(attrs={'class':'form-control'}),
             'email_address': forms.TextInput(attrs={'class':'form-control'}),
+        }
+
+
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'email', 'groups')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.TextInput(attrs={'class': 'form-control'}),
+            'groups': forms.widgets.SelectMultiple(attrs={'class':'form-control'}),
         }
