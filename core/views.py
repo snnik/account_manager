@@ -30,13 +30,30 @@ def services_list(request):
 def delete_account(request):
     return HttpResponse("account delete")
 
-
+@login_required(login_url='base_login')
 def create_account(request):
-    return HttpResponse("Create")
+    errors = {}
+
+    if request.method == 'POST':
+        form = CustomerForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('update-account', id=id)
+        else:
+            errors = form.errors
+
+    context = {}
+    form = CustomerForm()
+    context['form'] = form
+
+    if errors:
+        context['error_list'] = errors
+
+    return render(request, 'core/account_detail.html', context)
 
 
 @login_required(login_url='base_login')
-def update_account(request, id, **args):
+def update_account(request, id, **kwargs):
     errors = {}
     info = get_object_or_404(Customer, pk=id)
     if request.method == 'POST':

@@ -110,7 +110,7 @@ class Customer(models.Model):
             except Error:
                  login = ''
             finally:
-                postfix = time.time()
+                postfix = time()
                 login = LoginGenerator().create_login(self.description, postfix)
                 user = User.objects.create_user(username=login, password=password)
 
