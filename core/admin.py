@@ -4,5 +4,5 @@ from .models import *
 # Register your models here.
 admin.site.register(Service)
 admin.site.register(Package)
-admin.site.register(CustomerInfo)
-admin.site.register(CoreProtocol)
+admin.site.register(Customer)
+admin.site.register(Protocol)

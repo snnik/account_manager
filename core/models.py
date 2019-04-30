@@ -17,7 +17,7 @@ class Service(models.Model):
 
     def save(self, *args, **kwargs):
         # Function logging
-        log = CoreProtocol()
+        log = Protocol()
         log.user = 'Django admin'
 
         for key in kwargs:
@@ -50,7 +50,7 @@ class Service(models.Model):
         self.save(action='Change status SERVICE:' + self.pk + '. Active = True.')
 
     def delete(self, user=None, using=None, keep_parents=False):
-        log = CoreProtocol()
+        log = Protocol()
 
         if user:
             log.user = user
@@ -83,7 +83,7 @@ class Package(models.Model):
 
 
 # Данные о юридичском лице. Расширение стандартного пользователя
-class CustomerInfo(models.Model):
+class Customer(models.Model):
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$',
                                  message="Телефонный номер должен быть иметь следующий формат: '+999999999'. "
                                          "Максимальное количество цифр 15.")
@@ -104,14 +104,14 @@ class CustomerInfo(models.Model):
 
     def create(self, *args, **kwargs):
 
-        super(CustomerInfo, self).save(*args, **kwargs)
+        super(Customer, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.description
 
 
 # Протоколирование действий пользователя.
-class CoreProtocol(models.Model):
+class Protocol(models.Model):
     action = models.CharField(max_length=200)
     user = models.CharField(max_length=200)
     action_date = models.DateTimeField(auto_now_add=True)
