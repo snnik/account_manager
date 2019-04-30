@@ -4,10 +4,12 @@
 <div class="container">
     <div class="row">
         <div class="col">
-            <form method="post" action=".">{% csrf_token %}
+            <form method="post">{% csrf_token %}
                 {% for field in form %}
                   <div class="form-group">
-                    <label for="{{ field.id_for_label }}">{{ field.html_name }}</label>
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.html_name }}
+                    </label>
                     {{ field }}
                   </div>
                 {% endfor %}

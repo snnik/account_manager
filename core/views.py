@@ -3,8 +3,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth
-from core.forms import CustomerForm
+from core.forms import CustomerForm, AccountForm
 from .models import *
+from .utils import *
 
 
 # Create your views here.
@@ -12,17 +13,14 @@ from .models import *
 def index(request):
     context = {}
 
-    context['contract'] = Contract.objects.all()
     context['users'] = User.objects.all()
     return render(request, "core/account_list.html", context)
 
 
 @login_required(login_url='base_login')
 def services_list(request):
-    context = {}
+    context = {'page_title': 'Панель управления'}
 
-    context['page_title'] = 'Панель управления'
-    #print(Services.objects.count())
     return render(request, "core/services_list.html", context)
 
 
@@ -56,6 +54,29 @@ def update_account(request, id, **args):
 
     context = {}
     form = CustomerForm(instance=info)
+    context['form'] = form
+
+    if errors:
+        context['error_list'] = errors
+
+    return render(request, 'core/account_detail.html', context)
+
+
+@login_required(login_url='base_login')
+def account_detail(request, id, **args):
+    errors = ''
+    account = get_object_or_404(User, id=id)
+    if request.method == 'POST':
+        form =  AccountForm(request.POST, instance=account)
+        if form.is_valid():
+            account.username = form.cleaned_data['username']
+            account.save()
+            return redirect('account-detail', id=id)
+        else:
+            errors = form.errors
+
+    context = {}
+    form = AccountForm(instance=account)
     context['form'] = form
 
     if errors:

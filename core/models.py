@@ -1,17 +1,19 @@
 from django.db import models
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User, Permission, Group
 from django.core.validators import RegexValidator, EmailValidator
 
 
-class Services(models.Model):
-    name = models.CharField(max_length=20, unique=True)
-    description = models.CharField(max_length=50)
-    url = models.SlugField(unique=True, blank=False)
-    price = models.FloatField(blank=True)
-    fk_permission = models.OneToOneField(Permission, on_delete=models.CASCADE)
-    status = models.BooleanField(default=True)
-    is_create = models.DateTimeField(auto_now_add=True)
-    is_update = models.DateTimeField(auto_now=True)
+# Расширение модели прав, связка для сервиса
+class Service(models.Model):
+    fk_permission = models.ForeignKey(
+        Permission,
+        on_delete=models.CASCADE)
+    description = models.CharField(max_length=50, verbose_name='Наименование')
+    url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
+    price = models.FloatField(blank=True, verbose_name='Цена')
+    status = models.BooleanField(default=True, verbose_name='Статус')
+    is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
 
     def save(self, *args, **kwargs):
         # Function logging
@@ -31,7 +33,7 @@ class Services(models.Model):
             log.action = 'Insert service ' + str(self.name) + '.'
 
         try:
-            super(Services, self).save(*args, **kwargs)
+            super(Service, self).save(*args, **kwargs)
             #Связь с разрешениями
         except Exception:
             log.action = 'Error for Update Service:' + self.pk
@@ -58,9 +60,9 @@ class Services(models.Model):
         log.action = 'Delete SERVICE: id = ' + self.pk + ', name: ' + self.name
 
         try:
-            super(Services, self).delete(using=None, keep_parents=False)
+            super(Service, self).delete(using=None, keep_parents=False)
         except Exception:
-            log = 'Raise exeptions when delete Service:' + self.pk + '. Exeption:' + Exception.__str__() + '.'
+            log = 'Raise exeptions when delete Service:' + self.pk + '. Exeption:' + Exception.__str__ + '.'
         finally:
             log.save()
 
@@ -68,20 +70,19 @@ class Services(models.Model):
         return str(self.description)
 
 
-#Contract
-class Contract(models.Model):
-    number = models.CharField(max_length=10, unique=True)
-    customer = models.ManyToManyField(User)
-    status = models.BooleanField(default=True)
-    services = models.ManyToManyField(Services)
-    is_create = models.DateTimeField(auto_now_add=True)
-    is_update = models.DateTimeField(auto_now=True)
+# пакет услуг подключаемых клиенту. Расширение системы прав.
+class Package(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    description = models.CharField(max_length=50, verbose_name='Наименование')
+    status = models.BooleanField(default=True, verbose_name='Активен')
+    is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
 
     def __str__(self):
-        return self.number + ' ' + str(self.customer.name)
+        return self.description
 
 
-# Данные о юридичском лице
+# Данные о юридичском лице. Расширение стандартного пользователя
 class CustomerInfo(models.Model):
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$',
                                  message="Телефонный номер должен быть иметь следующий формат: '+999999999'. "
@@ -89,23 +90,27 @@ class CustomerInfo(models.Model):
     d_reg = RegexValidator(regex=r'^\d{9,15}$', message='Введите цифры')
     email_validator = EmailValidator()
 
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.CharField(max_length=100, verbose_name='Наименование')
-    OGRN = models.CharField(validators=[d_reg], blank=True, max_length=20)
-    INN = models.CharField(validators=[d_reg], blank=True, max_length=20)
-    KPP = models.CharField(validators=[d_reg], blank=True, max_length=20)
-    legal_address = models.CharField(max_length=250)
-    postal_address = models.CharField(max_length=250)
-    customer = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone_number = models.CharField(validators=[phone_regex], max_length=17)  # validators should be a list
-    email_address = models.CharField(validators=[email_validator], max_length=15)
-    is_create = models.DateTimeField(auto_now_add=True)
-    is_update = models.DateTimeField(auto_now=True)
+    OGRN = models.CharField(validators=[d_reg], blank=True, max_length=20, verbose_name='ОГРН')
+    INN = models.CharField(validators=[d_reg], blank=True, max_length=20, verbose_name='ИНН')
+    KPP = models.CharField(validators=[d_reg], blank=True, max_length=20, verbose_name='КПП')
+    legal_address = models.CharField(max_length=250, blank=True, verbose_name='Адрес фактический')
+    postal_address = models.CharField(max_length=250, blank=True, verbose_name='Адрес юридический')
+    phone_number = models.CharField(validators=[phone_regex], max_length=17, verbose_name='Номер телефона')
+    email_address = models.CharField(validators=[email_validator], max_length=15, verbose_name='Электронная почта')
+    is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
+
+    def create(self, *args, **kwargs):
+
+        super(CustomerInfo, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.description
 
 
-# Log
+# Протоколирование действий пользователя.
 class CoreProtocol(models.Model):
     action = models.CharField(max_length=200)
     user = models.CharField(max_length=200)
