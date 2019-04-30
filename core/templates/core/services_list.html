@@ -1,23 +1,22 @@
-{% extends "core/base.html" %}
+{% extends "core/index.html" %}
 
 {% block content %}
-<table class="table table-striped overflow-auto" onclick="idvalue()">
+<table class="table table-striped" onclick="idvalue()">
 	<!--<tr>
 		<th>id </th>
 		<th>логин</th>
 		<th>Пароль</th>
 	</tr> Table Header -->
+
     {% for service in services %}
 	<tr>
-        <td>{{ service.pk }}</td>
-        <td>{{ service.name }}</td>
         <td>{{ service.description }}</td>
+        <td>{{ service.price }}</td>
 		<td>{% if service.status %}
                 Сервис включен
             {% else %}
                 Сервис выключен
             {% endif %}</td>
-        <td> {{ sevice.fk_permission.name }}</td>
 	</tr><!-- Table Row -->
     {% endfor %}
 </table>

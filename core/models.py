@@ -1,16 +1,18 @@
-from django.db import models
+from datetime import time
+
+from django.db import models, Error
 from django.contrib.auth.models import User, Permission, Group
 from django.core.validators import RegexValidator, EmailValidator
+from .utils import PasswordGenerator, LoginGenerator
 
 
 # Расширение модели прав, связка для сервиса
 class Service(models.Model):
-    fk_permission = models.ForeignKey(
+    fk_permission = models.OneToOneField(
         Permission,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
     url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
-    price = models.FloatField(blank=True, verbose_name='Цена')
     status = models.BooleanField(default=True, verbose_name='Статус')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
@@ -18,8 +20,6 @@ class Service(models.Model):
     def save(self, *args, **kwargs):
         # Function logging
         log = Protocol()
-        log.user = 'Django admin'
-
         for key in kwargs:
             if key == 'username':
                 log.user = kwargs[key]
@@ -28,41 +28,36 @@ class Service(models.Model):
                 action = kwargs[key]
 
         if self.pk is not None:
-            log.action = 'Update service ' + str(self.name) + '. ' + action
+            log.action = 'Изменение сервиса: ' + str(self.name) + '. ' + action
         else:
-            log.action = 'Insert service ' + str(self.name) + '.'
+            log.action = 'Добавление сервиса ' + str(self.name) + '.'
 
         try:
             super(Service, self).save(*args, **kwargs)
             #Связь с разрешениями
         except Exception:
-            log.action = 'Error for Update Service:' + self.pk
-            log.action += 'Exeption:' + str(Exception) + '. Action rollback.'
+            log.action = 'Ошибка при изменении сервиса:' + self.pk
+            log.action += 'Exception:' + str(Exception) + '. Action rollback.'
         finally:
             log.save()
 
     def not_active(self, **kwargs):
         self.status = False
-        self.save(action='Change status SERVICE:' + self.pk + '. Active = False.')
+        self.save(action='Отключение сервиса:' + self.pk + '. Active = False.')
 
     def active(self, **kwargs):
         self.status = True
-        self.save(action='Change status SERVICE:' + self.pk + '. Active = True.')
+        self.save(action='Вкючение сервиса:' + self.pk + '. Active = True.')
 
     def delete(self, user=None, using=None, keep_parents=False):
         log = Protocol()
-
         if user:
             log.user = user
-        else:
-            log.user = 'Django admin'
-
-        log.action = 'Delete SERVICE: id = ' + self.pk + ', name: ' + self.name
-
+        log.action = 'Удаление сервиса: id = ' + self.pk + ', name: ' + self.name
         try:
             super(Service, self).delete(using=None, keep_parents=False)
         except Exception:
-            log = 'Raise exeptions when delete Service:' + self.pk + '. Exeption:' + Exception.__str__ + '.'
+            log = 'Ошибка при удалении сервиса:' + self.pk + '. Exception:' + Exception.__str__ + '.'
         finally:
             log.save()
 
@@ -72,8 +67,9 @@ class Service(models.Model):
 
 # пакет услуг подключаемых клиенту. Расширение системы прав.
 class Package(models.Model):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
+    price = models.FloatField(blank=True, verbose_name='Цена')
     status = models.BooleanField(default=True, verbose_name='Активен')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
@@ -90,7 +86,7 @@ class Customer(models.Model):
     d_reg = RegexValidator(regex=r'^\d{9,15}$', message='Введите цифры')
     email_validator = EmailValidator()
 
-    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    customer = models.OneToOneField(User, on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=100, verbose_name='Наименование')
     OGRN = models.CharField(validators=[d_reg], blank=True, max_length=20, verbose_name='ОГРН')
     INN = models.CharField(validators=[d_reg], blank=True, max_length=20, verbose_name='ИНН')
@@ -102,18 +98,29 @@ class Customer(models.Model):
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
 
-    def create(self, *args, **kwargs):
-
-        super(Customer, self).save(*args, **kwargs)
-
     def __str__(self):
         return self.description
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            login = LoginGenerator().create_login(self.description)
+            password = PasswordGenerator().generate()
+            try:
+                user = User.objects.create_user(username=login, password=password)
+            except Error:
+                 login = ''
+            finally:
+                postfix = time.time()
+                login = LoginGenerator().create_login(self.description, postfix)
+                user = User.objects.create_user(username=login, password=password)
+
+        super(Customer, self).save(*args, **kwargs)
 
 
 # Протоколирование действий пользователя.
 class Protocol(models.Model):
     action = models.CharField(max_length=200)
-    user = models.CharField(max_length=200)
+    user = models.CharField(max_length=200, default='Django admin')
     action_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

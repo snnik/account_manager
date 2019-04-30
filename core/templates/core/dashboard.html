@@ -1,0 +1,67 @@
+{% extends "core/index.html" %}
+
+{% block content %}
+<div class="container mb-4 mt-3">
+  <div class="row">
+    <div class="col-md-4 d-none d-md-block mx-0 px-1">
+      <div class="card bg-light shadow mt-0">
+        <div class="card-header">
+          <h5 class="card-title">Информация</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-borderless table-sm">
+            <tbody>
+              <tr>
+                <th><p class="card-text"><small>Наименование:</small></p></th>
+                <th><p class="card-text">ООО "Ромашка"</p></th>
+              </tr>
+              <tr>
+                <th><p class="card-text">Дата последнего входа</p></th>
+                <th></th>
+              </tr>
+              <tr></tr>
+            </tbody>
+          </table>
+          <div class="col">
+            <a href="#" class="btn btn-outline-info btn-sm btn-block">Профиль</a>
+          </div>
+        </div>
+</div>
+    </div>
+    <div class="col-12 col-md-8 mx-0 px-1">
+      <div class="card bg-light shadow overflow-auto">
+        <div class="card-header">
+          <h5 class="card-title">Рабочая область</h5>
+        </div>
+        <div class="card-body">
+          <div class="row align-items-start">
+            <div class="col col-sm-3">
+              <a href="{% url 'accounts_list' %}">
+                <img src="https://img.icons8.com/nolan/96/000000/key.png">
+              </a>
+            </div>
+            <div class="col col-sm-3">
+              <img src="https://img.icons8.com/nolan/96/000000/virtualbox.png">
+            </div>
+            <div class="col col-sm-3">
+              <img src="https://img.icons8.com/nolan/96/000000/opened-folder.png">
+            </div>
+            <div class="col col-sm-3">
+              <img src="https://img.icons8.com/nolan/96/000000/groups.png">
+            </div>
+            <div class="col col-sm-3">
+              <img src="https://img.icons8.com/nolan/96/000000/id-verified.png">
+            </div>
+            <div class="col col-sm-3">
+              <img src="https://img.icons8.com/nolan/96/000000/token-card-code.png">
+            </div>
+            <div class="col col-sm-3">
+              <img src="https://img.icons8.com/nolan/96/000000/settings.png">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,21 +1,30 @@
-{% extends "core/base.html" %}
+{% extends "core/index.html" %}
 
 {% block content %}
+
 <div class="container">
     <table class="table table-striped overflow-auto" onclick="idvalue()">
-	<tr>
-		<th>id </th>
-		<th>логин</th>
-		<th>Статус</th>
-	</tr>
-    {% for user in users %}
+    <thead>
         <tr>
-            <td>{{ user.pk }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.is_active }}</td>
-            <td><a href="{% url 'account_detail' user.pk %}">Edit</a></td>
+            <th>id</th>
+            <th>Наименование</th>
+            <th>Статус</th>
         </tr>
-    {% endfor %}
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ Customer.pk }}</td>
+            <td>{{ Customer.description }}</td>
+            <td>{{ Customer.user.is_active }}</td>
+            <td>
+                <a href="{% url 'account_detail' user.pk %}">
+                    Edit
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
     </table>
 </div>
 {% endblock content%}

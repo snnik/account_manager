@@ -5,16 +5,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import auth
 from core.forms import CustomerForm, AccountForm
 from .models import *
-from .utils import *
 
 
 # Create your views here.
 @login_required(login_url='base_login')
 def index(request):
-    context = {}
+    return render(request, "core/dashboard.html")
 
-    context['users'] = User.objects.all()
-    return render(request, "core/account_list.html", context)
+
+@login_required(login_url='base_login')
+def accounts_list(request):
+    context={}
+    context['Customer'] = Customer.objects.all()
+    return render(request, 'core/account_list.html', context)
 
 
 @login_required(login_url='base_login')
@@ -35,7 +38,7 @@ def create_account(request):
 @login_required(login_url='base_login')
 def update_account(request, id, **args):
     errors = {}
-    info = get_object_or_404(CustomerInfo, pk=id)
+    info = get_object_or_404(Customer, pk=id)
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=info)
         if form.is_valid():
