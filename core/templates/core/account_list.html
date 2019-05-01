@@ -1,38 +1,36 @@
 {% extends "core/index.html" %}
 
 {% block content %}
-<div class="row">
-    <div class="col-10">
-
+<div class="container overflow-auto">
+    <div class="row">
+        <div class="col-9">
+             <table class="table table-striped overflow-auto" onclick="idvalue()">
+                <thead>
+                    <tr>
+                        <th>id</th>
+                        <th>Наименование</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for Customer in customer %}
+                    <tr>
+                        <td>{{ Customer.pk }}</td>
+                        <td>{{ Customer.description }}</td>
+                        <td>{{ Customer.user.is_active }}</td>
+                        <td>
+                            <a href="{% url 'account_detail' user.pk %}">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+             </table>
+        </div>
+        <div class="col-2">
+            <a type="button" class="btn btn-secondary position-fixed " href="{% url 'account_create' %}">Вторичный</a>
+        </div>
     </div>
-    <div class="col-2">
-        <a type="button" class="btn btn-secondary position-fixed " href="{% url 'account_create' %}">Вторичный</a>
-    </div>
-
-</div>
-<div class="container">
-    <table class="table table-striped overflow-auto" onclick="idvalue()">
-    <thead>
-        <tr>
-            <th>id</th>
-            <th>Наименование</th>
-            <th>Статус</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>{{ Customer.pk }}</td>
-            <td>{{ Customer.description }}</td>
-            <td>{{ Customer.user.is_active }}</td>
-            <td>
-                <a href="{% url 'account_detail' user.pk %}">
-                    Edit
-                </a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-    </table>
 </div>
 {% endblock content%}

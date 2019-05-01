@@ -1,4 +1,4 @@
-from datetime import time
+import time
 
 from django.db import models, Error
 from django.contrib.auth.models import User, Permission, Group
@@ -110,9 +110,10 @@ class Customer(models.Model):
             except Error:
                  login = ''
             finally:
-                postfix = time()
+                postfix = str(time.time()).split('.')[1]
                 login = LoginGenerator().create_login(self.description, postfix)
                 user = User.objects.create_user(username=login, password=password)
+                self.customer = user
 
         super(Customer, self).save(*args, **kwargs)
 

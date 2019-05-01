@@ -1,27 +1,32 @@
 {% extends "core/index.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col">
-            <form method="post">{% csrf_token %}
-                {% for field in form %}
-                  <div class="form-group">
-                    <label for="{{ field.id_for_label }}">
-                        {{ field.html_name }}
-                    </label>
-                    {{ field }}
-                  </div>
-                {% endfor %}
-                <button class="btn btn-warning">submit</button>
-            </form>
+<div class="container overflow-auto px-0 my-3 shadow">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="text-center">Create account</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <form method="post">{% csrf_token %}
+                        {% for field in form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                        {% endfor %}
+                        <button class="btn btn-warning">submit</button>
+                    </form>
+                </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        {{ error_list }}<br>
+                    </div>
+                </div>
         </div>
     </div>
-     <div class="row">
-            <div class="col">
-                {{ error_list }}<br>
-            </div>
-        </div>
 
 </div>
 {% endblock content%}

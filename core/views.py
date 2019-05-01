@@ -16,7 +16,7 @@ def index(request):
 @login_required(login_url='base_login')
 def accounts_list(request):
     context={}
-    context['Customer'] = Customer.objects.all()
+    context['customer'] = Customer.objects.all()
     return render(request, 'core/account_list.html', context)
 
 
@@ -30,6 +30,7 @@ def services_list(request):
 def delete_account(request):
     return HttpResponse("account delete")
 
+
 @login_required(login_url='base_login')
 def create_account(request):
     errors = {}
@@ -38,7 +39,7 @@ def create_account(request):
         form = CustomerForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('update-account', id=id)
+            return redirect('accounts_list')
         else:
             errors = form.errors
 
@@ -60,7 +61,7 @@ def update_account(request, id, **kwargs):
         form = CustomerForm(request.POST, instance=info)
         if form.is_valid():
             info.save()
-            return redirect('update-account', id=id)
+            return redirect('account_update', id=id)
         else:
             errors = form.errors
 
