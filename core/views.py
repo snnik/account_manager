@@ -1,7 +1,6 @@
-from django.contrib import auth
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.http import HttpResponse, HttpResponseRedirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import auth
 from core.forms import CustomerForm, AccountForm
 from .models import *
@@ -16,6 +15,7 @@ def index(request):
 @login_required(login_url='base_login')
 def accounts_list(request):
     context={}
+    # context['customer'] = Customer.objects.filter(customer__is_active=True)
     context['customer'] = Customer.objects.all()
     return render(request, 'core/account_list.html', context)
 
@@ -27,46 +27,48 @@ def services_list(request):
     return render(request, "core/services_list.html", context)
 
 
-def delete_account(request):
-    return HttpResponse("account delete")
+@login_required(login_url='base_login')
+def deactivate_account(request, customer_id):
+    customer = get_object_or_404(Customer, pk=customer_id)
+    customer.deactivate()
+    return redirect('accounts_list')
+
+
+@login_required(login_url='base_login')
+def activate_account(request, customer_id):
+    customer = get_object_or_404(Customer, pk=customer_id)
+    customer.activate()
+    return redirect('accounts_list')
 
 
 @login_required(login_url='base_login')
 def create_account(request):
-    errors = {}
 
     if request.method == 'POST':
         form = CustomerForm(request.POST)
         if form.is_valid():
             form.save()
             return redirect('accounts_list')
-        else:
-            errors = form.errors
+    else:
+        form = CustomerForm()
 
-    context = {}
-    form = CustomerForm()
-    context['form'] = form
-
-    if errors:
-        context['error_list'] = errors
-
-    return render(request, 'core/account_detail.html', context)
+    return render(request, 'core/account_detail.html', {'form': form})
 
 
 @login_required(login_url='base_login')
-def update_account(request, id, **kwargs):
+def update_account(request, customer_id):
     errors = {}
-    info = get_object_or_404(Customer, pk=id)
+    customer = get_object_or_404(Customer, pk=customer_id, customer__is_active=True)
     if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=info)
+        form = CustomerForm(request.POST, instance=customer)
         if form.is_valid():
-            info.save()
-            return redirect('account_update', id=id)
+            customer.save()
+            return redirect('account_update', id=customer_id, customer__is_active=True)
         else:
             errors = form.errors
 
     context = {}
-    form = CustomerForm(instance=info)
+    form = CustomerForm(instance=customer)
     context['form'] = form
 
     if errors:
@@ -76,26 +78,18 @@ def update_account(request, id, **kwargs):
 
 
 @login_required(login_url='base_login')
-def account_detail(request, id, **args):
-    errors = ''
-    account = get_object_or_404(User, id=id)
+@permission_required('core.change_customer')
+def account_detail(request, id, **kwargs):
+    account = get_object_or_404(Customer, id=id)
     if request.method == 'POST':
-        form = AccountForm(request.POST, instance=account)
+        form = CustomerForm(request.POST, instance=account)
         if form.is_valid():
-            account.username = form.cleaned_data['username']
-            account.save()
+            form.save()
             return redirect('account_detail', id=id)
-        else:
-            errors = form.errors
+    else:
+        form = CustomerForm(instance=account)
 
-    context = {}
-    form = AccountForm(instance=account)
-    context['form'] = form
-
-    if errors:
-        context['error_list'] = errors
-
-    return render(request, 'core/account_detail.html', context)
+    return render(request, 'core/account_detail.html', {'form': form})
 
 
 def login(request):
@@ -106,13 +100,21 @@ def login(request):
         user = auth.authenticate(username=username, password=password)
         if user is not None:
             auth.login(request, user)
-            return HttpResponseRedirect('/')
+            if user.last_login:
+                return HttpResponseRedirect('/')
+            # else:
+            #     return HttpResponseRedirect(reverse('passchange'))
         else:
             login_error = 'Сожалеем, вы неправильно ввели логин или пароль'
             context = {'login_error': login_error}
             return render(request, 'core/base_login.html', context)
     else:
         return render(request, 'core/base_login.html', context)
+
+
+@login_required(login_url='base_login')
+def password_change(reguest):
+    return HttpResponse('Pass change')
 
 
 def logout(request):

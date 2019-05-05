@@ -1,8 +1,8 @@
 {% extends "core/index.html" %}
 
 {% block content %}
-<div class="container overflow-auto px-0 my-3 shadow">
-    <div class="card">
+<div class="container">
+    <div class="card overflow-auto  px-0 my-4 shadow">
         <div class="card-header">
             <h5 class="text-center">Create account</h5>
         </div>
@@ -11,19 +11,18 @@
                 <div class="col">
                     <form method="post">{% csrf_token %}
                         {% for field in form %}
-                        <div class="form-group">
+                        <div class="form-group col">
                             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
+                            {{ field.error }}
                         </div>
                         {% endfor %}
-                        <button class="btn btn-warning">submit</button>
+                        <a class="btn btn-warning float-left" href="{% url 'accounts_list' %}">
+                            Назад
+                        </a>
+                        <button class="btn btn-warning float-right">Сохранить</button>
                     </form>
                 </div>
-                </div>
-                <div class="row">
-                    <div class="col">
-                        {{ error_list }}<br>
-                    </div>
                 </div>
         </div>
     </div>

@@ -87,7 +87,7 @@ class LoginGenerator:
                         string[i] = string[i].replace(li, '')
 
             if postfix:
-                result = ''.join(string[i].lower()[:4]) + str(postfix)
+                result = ''.join(string[i].lower()[:4]) + str(postfix)[:4]
             else:
                 result = ''.join(string[i].lower())
 

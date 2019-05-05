@@ -12,8 +12,8 @@ class Service(models.Model):
         Permission,
         on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
-    url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
     status = models.BooleanField(default=True, verbose_name='Статус')
+    price = models.FloatField(blank=True, verbose_name='Цена')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
 
@@ -69,6 +69,8 @@ class Service(models.Model):
 class Package(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
+    url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
+    shortcut_path = models.TextField(verbose_name='Путь к ярлыку')
     price = models.FloatField(blank=True, verbose_name='Цена')
     status = models.BooleanField(default=True, verbose_name='Активен')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
@@ -107,15 +109,24 @@ class Customer(models.Model):
             password = PasswordGenerator().generate()
             try:
                 user = User.objects.create_user(username=login, password=password)
-            except Error:
-                 login = ''
-            finally:
+            except Exception:
+                login = ''
                 postfix = str(time.time()).split('.')[1]
                 login = LoginGenerator().create_login(self.description, postfix)
                 user = User.objects.create_user(username=login, password=password)
-                self.customer = user
 
+        self.customer = user
         super(Customer, self).save(*args, **kwargs)
+
+    def activate(self):
+        user = self.customer
+        user.is_active = True
+        user.save()
+
+    def deactivate(self):
+        user = self.customer
+        user.is_active = False
+        user.save()
 
 
 # Протоколирование действий пользователя.
