@@ -1,5 +1,4 @@
 import time
-
 from django.db import models, Error
 from django.contrib.auth.models import User, Permission, Group
 from django.core.validators import RegexValidator, EmailValidator
@@ -20,46 +19,35 @@ class Service(models.Model):
     def save(self, *args, **kwargs):
         # Function logging
         log = Protocol()
-        for key in kwargs:
-            if key == 'username':
-                log.user = kwargs[key]
-
-            if key == 'action':
-                action = kwargs[key]
-
+        table = 'core_service'
         if self.pk is not None:
-            log.action = 'Изменение сервиса: ' + str(self.name) + '. ' + action
+            action = 'change'
         else:
-            log.action = 'Добавление сервиса ' + str(self.name) + '.'
-
+            action = 'add'
         try:
             super(Service, self).save(*args, **kwargs)
+            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table)
             #Связь с разрешениями
         except Exception:
-            log.action = 'Ошибка при изменении сервиса:' + self.pk
-            log.action += 'Exception:' + str(Exception) + '. Action rollback.'
-        finally:
-            log.save()
+            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table, error=str(Exception))
 
     def not_active(self, **kwargs):
         self.status = False
-        self.save(action='Отключение сервиса:' + self.pk + '. Active = False.')
+        self.save(username=kwargs['username'])
 
     def active(self, **kwargs):
         self.status = True
-        self.save(action='Вкючение сервиса:' + self.pk + '. Active = True.')
+        self.save(username=kwargs['username'])
 
-    def delete(self, user=None, using=None, keep_parents=False):
+    def delete(self, *args, **kwargs):
         log = Protocol()
-        if user:
-            log.user = user
-        log.action = 'Удаление сервиса: id = ' + self.pk + ', name: ' + self.name
+        action = 'delete'
+        table = 'core_service'
         try:
             super(Service, self).delete(using=None, keep_parents=False)
+            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table)
         except Exception:
-            log = 'Ошибка при удалении сервиса:' + self.pk + '. Exception:' + Exception.__str__ + '.'
-        finally:
-            log.save()
+            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table, error=str(Exception))
 
     def __str__(self):
         return str(self.description)
@@ -104,19 +92,47 @@ class Customer(models.Model):
         return self.description
 
     def save(self, *args, **kwargs):
+        for key in kwargs:
+            if key == 'username':
+                usr = kwargs[key]
+            else:
+                usr = None
+
+            if key == 'password':
+                password = kwargs[key]
+            else:
+                password = None
+
         if not self.pk:
+            action = 'add'
+            log = Protocol()
+            table = 'auth_user'
             login = LoginGenerator().create_login(self.description)
             password = PasswordGenerator().generate()
             try:
                 user = User.objects.create_user(username=login, password=password)
+                log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
+
             except Exception:
                 login = ''
                 postfix = str(time.time()).split('.')[1]
                 login = LoginGenerator().create_login(self.description, postfix)
                 user = User.objects.create_user(username=login, password=password)
+                log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
+            table = 'core_customer'
+            self.customer = user
+        else:
+            action = 'change'
+            table = 'core_customer'
 
-        self.customer = user
-        super(Customer, self).save(*args, **kwargs)
+        clog = Protocol()
+        try:
+            super(Customer, self).save(*args, **kwargs)
+            clog.save(action=action, obj=str(self), table=table, user=usr, obj_id=self.pk)
+        except Exception:
+            clog.save(clog.save(action=action, obj=str(self), table=table, user=usr,
+                                obj_id=self.pk), error=str(Exception))
+        return password
 
     def activate(self):
         user = self.customer
@@ -134,6 +150,44 @@ class Protocol(models.Model):
     action = models.CharField(max_length=200)
     user = models.CharField(max_length=200, default='Django admin')
     action_date = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        error = kwargs.get('error')
+        action = kwargs.get('action')
+
+        if 'user' in kwargs:
+            self.user = kwargs['user']
+            del(kwargs['user'])
+        elif 'obj' in kwargs:
+            obj = str(kwargs['obj'])
+            del(kwargs['obj'])
+        elif 'table' in kwargs:
+            table = str(kwargs['table'])
+            del(kwargs['table'])
+        elif 'obj_id' in kwargs:
+            obj_id = str(kwargs['obj_id'])
+            del(kwargs['obj_id'])
+
+        if error:
+            self.action = 'Ошибка: ' + error + 'При попытке внести изменения в таблицу ' + table + \
+                          ' пользователем ' + self.user + './n' + \
+                          'Объект:' + obj + '. ID записи:' + obj_id + '. Действие: ' + action
+
+        if action == 'delete':
+            self.action = 'Удален ' + obj + ' пользователем ' + self.user + './n' \
+                          + 'Таблица:' + table + '. ID записи:' + obj_id
+        elif action == 'change':
+            self.action = 'Изменен ' + obj + ' пользователем ' + str(self.user) + './n' \
+                      + 'Таблица:' + table + '. ID записи:' + obj_id
+        elif action == 'add':
+            self.action = 'Добавлен ' + obj + ' пользователем ' + self.user + './n' \
+                          + 'Таблица ' + table + '. ID записи: ' + obj_id
+        else:
+            self.action = 'Действие не определено. Пользователь:' + self.user + ', объект: ' + object + '.'
+
+        kwargs = {}
+
+        super(Protocol, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.action

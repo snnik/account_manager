@@ -62,7 +62,7 @@ def update_account(request, customer_id):
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=customer)
         if form.is_valid():
-            customer.save()
+            customer.save(username=request.user)
             return redirect('account_update', id=customer_id, customer__is_active=True)
         else:
             errors = form.errors
@@ -79,17 +79,18 @@ def update_account(request, customer_id):
 
 @login_required(login_url='base_login')
 @permission_required('core.change_customer')
-def account_detail(request, id, **kwargs):
-    account = get_object_or_404(Customer, id=id)
+def account_detail(request, customer_id, password=None, **kwargs):
+    account = get_object_or_404(Customer, id=customer_id)
+    usr = request.user
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=account)
         if form.is_valid():
-            form.save()
-            return redirect('account_detail', id=id)
+            password = account.save(username=str(usr.username))
+            return redirect('account_detail', customer_id=customer_id, password=password)
     else:
         form = CustomerForm(instance=account)
 
-    return render(request, 'core/account_detail.html', {'form': form})
+    return render(request, 'core/account_detail.html', {'form': form, 'password': password})
 
 
 def login(request):
