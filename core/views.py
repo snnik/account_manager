@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import auth
-from core.forms import CustomerForm, AccountForm
+from core.forms import CustomerForm, ServiceForm
 from .models import *
 
 
@@ -23,8 +23,31 @@ def accounts_list(request):
 @login_required(login_url='base_login')
 def services_list(request):
     context = {'page_title': 'Панель управления'}
-
+    services = Service.objects.all()
+    context['services'] = services
     return render(request, "core/services_list.html", context)
+
+
+@login_required()
+def create_service(request):
+    if request.method == 'POST':
+        form = ServiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse('services_list'))
+    else:
+        form = ServiceForm()
+    return render(request, 'core/service_form.html', {'form': form})
+
+
+@login_required()
+def update_service(request, service_id):
+    return HttpResponse(service_id)
+
+
+@login_required()
+def delete_service(request, service_id):
+    return HttpResponse(service_id)
 
 
 @login_required(login_url='base_login')

@@ -11,6 +11,8 @@ class Service(models.Model):
         Permission,
         on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
+    url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
+    shortcut_path = models.TextField(verbose_name='Путь к ярлыку')
     status = models.BooleanField(default=True, verbose_name='Статус')
     price = models.FloatField(blank=True, verbose_name='Цена')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
@@ -57,8 +59,6 @@ class Service(models.Model):
 class Package(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
-    url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
-    shortcut_path = models.TextField(verbose_name='Путь к ярлыку')
     price = models.FloatField(blank=True, verbose_name='Цена')
     status = models.BooleanField(default=True, verbose_name='Активен')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')

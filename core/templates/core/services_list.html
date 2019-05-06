@@ -1,23 +1,51 @@
 {% extends "core/index.html" %}
 
 {% block content %}
-<table class="table table-striped" onclick="idvalue()">
-	<!--<tr>
-		<th>id </th>
-		<th>логин</th>
-		<th>Пароль</th>
-	</tr> Table Header -->
+<div class="container my-3">
+    <div class="row">
+        <div class="col overflow-auto">
+            <div class="card shadow">
+                <div class="card-header">
+                    <p><h5  class="text-center">Список сервисов</h5></p>
+                    <a type="button" class="btn btn-secondary float-right" href="{% url 'service_create' %}">
+                        Добавить
+                    </a>
+                </div>
 
-    {% for service in services %}
-	<tr>
-        <td>{{ service.description }}</td>
-        <td>{{ service.price }}</td>
-		<td>{% if service.status %}
-                Сервис включен
-            {% else %}
-                Сервис выключен
-            {% endif %}</td>
-	</tr><!-- Table Row -->
-    {% endfor %}
-</table>
+                <div class="card-body">
+                     <table class="table table-striped overflow-auto" onclick="idvalue()">
+                        <thead>
+                            <tr>
+                                <th>id</th>
+                                <th>Наименование</th>
+                                <th>Статус</th>
+                                <th colspan="2" class = "text-center">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for service in services %}
+                            <tr>
+                                <td>{{ service.pk }}</td>
+                                <td>{{ service.description }}</td>
+                                <td>
+                                    {% if service.status %}
+                                        Активный
+                                    {% else %}
+                                        Неактивый
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'service_update' service.pk %}">
+                                        Edit
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content%}
