@@ -26,18 +26,18 @@ class Service(models.Model):
             action = 'add'
         try:
             super(Service, self).save(*args, **kwargs)
-            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table)
+            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table)
             #Связь с разрешениями
-        except Exception:
-            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table, error=str(Exception))
+        except Exception as e:
+            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
 
     def not_active(self, **kwargs):
         self.status = False
-        self.save(username=kwargs['username'])
+        self.save(username=kwargs.get('username'))
 
     def active(self, **kwargs):
         self.status = True
-        self.save(username=kwargs['username'])
+        self.save(username=kwargs.get('username'))
 
     def delete(self, *args, **kwargs):
         log = Protocol()
@@ -45,9 +45,9 @@ class Service(models.Model):
         table = 'core_service'
         try:
             super(Service, self).delete(using=None, keep_parents=False)
-            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table)
-        except Exception:
-            log.save(user=kwargs['username'], action=action, obj=str(self), obj_id=self.pk, table=table, error=str(Exception))
+            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table)
+        except Exception as e:
+            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
 
     def __str__(self):
         return str(self.description)
@@ -92,16 +92,8 @@ class Customer(models.Model):
         return self.description
 
     def save(self, *args, **kwargs):
-        for key in kwargs:
-            if key == 'username':
-                usr = kwargs[key]
-            else:
-                usr = None
-
-            if key == 'password':
-                password = kwargs[key]
-            else:
-                password = None
+        usr = kwargs.get('username')
+        password = kwargs.get('password')
 
         if not self.pk:
             action = 'add'
@@ -112,9 +104,7 @@ class Customer(models.Model):
             try:
                 user = User.objects.create_user(username=login, password=password)
                 log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
-
-            except Exception:
-                login = ''
+            except Exception as e:
                 postfix = str(time.time()).split('.')[1]
                 login = LoginGenerator().create_login(self.description, postfix)
                 user = User.objects.create_user(username=login, password=password)
@@ -126,12 +116,13 @@ class Customer(models.Model):
             table = 'core_customer'
 
         clog = Protocol()
+        kwargs.clear()
         try:
             super(Customer, self).save(*args, **kwargs)
             clog.save(action=action, obj=str(self), table=table, user=usr, obj_id=self.pk)
-        except Exception:
+        except Exception as e:
             clog.save(clog.save(action=action, obj=str(self), table=table, user=usr,
-                                obj_id=self.pk), error=str(Exception))
+                                obj_id=self.pk), error=str(e))
         return password
 
     def activate(self):
@@ -154,38 +145,29 @@ class Protocol(models.Model):
     def save(self, *args, **kwargs):
         error = kwargs.get('error')
         action = kwargs.get('action')
-
-        if 'user' in kwargs:
-            self.user = kwargs['user']
-            del(kwargs['user'])
-        elif 'obj' in kwargs:
-            obj = str(kwargs['obj'])
-            del(kwargs['obj'])
-        elif 'table' in kwargs:
-            table = str(kwargs['table'])
-            del(kwargs['table'])
-        elif 'obj_id' in kwargs:
-            obj_id = str(kwargs['obj_id'])
-            del(kwargs['obj_id'])
+        self.user = str(kwargs.get('user'))
+        obj = str(kwargs.get('obj'))
+        table = str(kwargs.get('table'))
+        obj_id = str(kwargs.get('obj_id'))
 
         if error:
             self.action = 'Ошибка: ' + error + 'При попытке внести изменения в таблицу ' + table + \
-                          ' пользователем ' + self.user + './n' + \
+                          ' пользователем ' + self.user + '.\n' + \
                           'Объект:' + obj + '. ID записи:' + obj_id + '. Действие: ' + action
 
         if action == 'delete':
-            self.action = 'Удален ' + obj + ' пользователем ' + self.user + './n' \
+            self.action = 'Удален ' + obj + ' пользователем ' + self.user + '.\n' \
                           + 'Таблица:' + table + '. ID записи:' + obj_id
         elif action == 'change':
-            self.action = 'Изменен ' + obj + ' пользователем ' + str(self.user) + './n' \
+            self.action = 'Изменен ' + obj + ' пользователем ' + self.user + '.\n' \
                       + 'Таблица:' + table + '. ID записи:' + obj_id
         elif action == 'add':
-            self.action = 'Добавлен ' + obj + ' пользователем ' + self.user + './n' \
+            self.action = 'Добавлен ' + obj + ' пользователем ' + self.user + '.\n' \
                           + 'Таблица ' + table + '. ID записи: ' + obj_id
         else:
-            self.action = 'Действие не определено. Пользователь:' + self.user + ', объект: ' + object + '.'
+            self.action = 'Действие не определено. Пользователь:' + self.user + ', объект: ' + obj + '.'
 
-        kwargs = {}
+        kwargs.clear()
 
         super(Protocol, self).save(*args, **kwargs)
 

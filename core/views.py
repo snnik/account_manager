@@ -85,8 +85,12 @@ def account_detail(request, customer_id, password=None, **kwargs):
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=account)
         if form.is_valid():
-            password = account.save(username=str(usr.username))
-            return redirect('account_detail', customer_id=customer_id, password=password)
+            password = account.save(username=usr.username)
+
+            if password:
+                return redirect('account_detail', customer_id=customer_id, password=password)
+            else:
+                return redirect('account_detail', customer_id=customer_id)
     else:
         form = CustomerForm(instance=account)
 
