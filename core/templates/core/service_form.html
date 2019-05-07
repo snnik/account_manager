@@ -15,7 +15,7 @@
                             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
                             {{ field.help_text }}
-                            {{ field.error }}
+                            {{ field.errors }}
                         </div>
                         {% endfor %}
                         <a class="btn btn-warning float-left" href="{% url 'services_list' %}">

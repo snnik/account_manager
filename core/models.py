@@ -2,6 +2,7 @@ import time
 from django.db import models, Error
 from django.contrib.auth.models import User, Permission, Group
 from django.core.validators import RegexValidator, EmailValidator
+from django.contrib.contenttypes.models import ContentType
 from .utils import PasswordGenerator, LoginGenerator
 
 
@@ -22,16 +23,30 @@ class Service(models.Model):
         # Function logging
         log = Protocol()
         table = 'core_service'
+        if 'username' in kwargs:
+            username = kwargs.pop('username')
+        else:
+            username = None
+
         if self.pk is not None:
             action = 'change'
         else:
             action = 'add'
+            translit_str = LoginGenerator()
+            content_type = ContentType.objects.get_for_model(Service)
+            permission = Permission.objects.create(
+                codename=translit_str.translit_generator(self.description),
+                name=self.description,
+                content_type=content_type,
+            )
+            self.fk_permission = permission
+
         try:
             super(Service, self).save(*args, **kwargs)
-            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table)
-            #Связь с разрешениями
+            log.save(user=username, action=action, obj=str(self), obj_id=self.pk, table=table)
+            # Связь с разрешениями
         except Exception as e:
-            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
+            log.save(user=username, action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
 
     def not_active(self, **kwargs):
         self.status = False

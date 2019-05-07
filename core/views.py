@@ -14,8 +14,7 @@ def index(request):
 
 @login_required(login_url='base_login')
 def accounts_list(request):
-    context={}
-    # context['customer'] = Customer.objects.filter(customer__is_active=True)
+    context = {}
     context['customer'] = Customer.objects.all()
     return render(request, 'core/account_list.html', context)
 
@@ -34,7 +33,6 @@ def create_service(request):
         form = ServiceForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect(reverse('services_list'))
     else:
         form = ServiceForm()
     return render(request, 'core/service_form.html', {'form': form})
