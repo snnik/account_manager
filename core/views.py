@@ -9,19 +9,20 @@ from .models import *
 # Create your views here.
 @login_required(login_url='base_login')
 def index(request):
-    return render(request, "core/dashboard.html")
+    return render(request, "core/dashboard.html", {'page_title': 'Панель управления'})
 
 
 @login_required(login_url='base_login')
 def accounts_list(request):
-    context = {}
-    context['customer'] = Customer.objects.all()
-    return render(request, 'core/account_list.html', context)
+    page_context = {}
+    page_context['page_title'] = 'Аккаунты'
+    page_context['customer'] = Customer.objects.all()
+    return render(request, 'core/account_list.html', context=page_context)
 
 
 @login_required(login_url='base_login')
 def services_list(request):
-    context = {'page_title': 'Панель управления'}
+    context = {'page_title': 'Сервисы'}
     services = Service.objects.all()
     context['services'] = services
     return render(request, "core/services_list.html", context)
@@ -29,23 +30,39 @@ def services_list(request):
 
 @login_required()
 def create_service(request):
+    page_context = {'page_title': 'Создание сервиса'}
     if request.method == 'POST':
         form = ServiceForm(request.POST)
         if form.is_valid():
             form.save()
     else:
         form = ServiceForm()
-    return render(request, 'core/service_form.html', {'form': form})
+    page_context['form'] = form
+    return render(request, 'core/service_form.html', page_context)
 
 
 @login_required()
 def update_service(request, service_id):
-    return HttpResponse(service_id)
+    service = get_object_or_404(Service, pk=service_id)
+    page_context = {'page_title': 'Изменение сервиса'}
+
+    if request.method == 'POST':
+        form = ServiceForm(request.POST, instance=service)
+        if form.is_valid():
+            form.save()
+    else:
+        form = ServiceForm(instance=service)
+
+    page_context['form'] = form
+    return render(request, 'core/service_form.html', page_context)
 
 
 @login_required()
 def delete_service(request, service_id):
-    return HttpResponse(service_id)
+    service = get_object_or_404(Service, pk=service_id)
+    if service:
+        service.delete()
+    return redirect('services_list')
 
 
 @login_required(login_url='base_login')
