@@ -65,6 +65,28 @@ def delete_service(request, service_id):
     return redirect('services_list')
 
 
+@login_required()
+def list_package(request):
+    packages = Package.objects.all()
+    page_context = {'page_title': 'Список пакетов услуг', 'packages': packages}
+    return render(request, 'core/packages_list.html', page_context)
+
+
+@login_required()
+def create_package(request):
+    return HttpResponse('Package created')
+
+
+@login_required()
+def delete_package(request, sp_id):
+    return HttpResponse('delete package' + str(sp_id))
+
+
+@login_required()
+def update_package(request, sp_id):
+    return HttpResponse('update package' + str(sp_id))
+
+
 @login_required(login_url='base_login')
 def deactivate_account(request, customer_id):
     customer = get_object_or_404(Customer, pk=customer_id)
