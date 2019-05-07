@@ -12,8 +12,9 @@ class Service(models.Model):
         Permission,
         on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
-    url = models.SlugField(unique=True, blank=False, verbose_name='URI ресурса')
+    url = models.URLField(unique=True, blank=False, verbose_name='URI ресурса')
     shortcut_path = models.TextField(verbose_name='Путь к ярлыку')
+    is_service = models.BooleanField(default=True, verbose_name='Услуга/Служебный')
     status = models.BooleanField(default=True, verbose_name='Статус')
     price = models.FloatField(blank=True, verbose_name='Цена')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
@@ -33,15 +34,16 @@ class Service(models.Model):
         else:
             action = 'add'
             translit_str = LoginGenerator()
+        try:
             content_type = ContentType.objects.get_for_model(Service)
-            permission = Permission.objects.create(
+            permission, flag = Permission.objects.get_or_create(
                 codename=translit_str.translit_generator(self.description),
                 name=self.description,
                 content_type=content_type,
             )
+
             self.fk_permission = permission
 
-        try:
             super(Service, self).save(*args, **kwargs)
             log.save(user=username, action=action, obj=str(self), obj_id=self.pk, table=table)
             # Связь с разрешениями

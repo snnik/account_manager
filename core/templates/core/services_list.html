@@ -6,7 +6,8 @@
         <div class="col overflow-auto">
             <div class="card shadow">
                 <div class="card-header">
-                    <p><h5  class="text-center">Список сервисов</h5></p>
+                    <h5  class="text-center">Список сервисов</h5>
+                    <a type = "button" class="btn btn-secondary float-left" href="/">Назад</a>
                     <a type="button" class="btn btn-secondary float-right" href="{% url 'service_create' %}">
                         Добавить
                     </a>
@@ -35,8 +36,11 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'service_update' service.pk %}">
-                                        Edit
+                                    <a class="btn btn-warning float-right" href="{% url 'service_delete' service.pk %}">
+                                        Удалить
+                                    </a>
+                                    <a class="btn btn-warning float-right" href="{% url 'service_update' service.pk %}">
+                                        Редактировать
                                     </a>
                                 </td>
                             </tr>
