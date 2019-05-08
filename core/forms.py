@@ -51,5 +51,16 @@ class PackageForm(forms.ModelForm):
         fields = ('description', 'status', 'group')
         widgets = {
             'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'status': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'status': forms.CheckboxInput(attrs={'class': 'form-check-input left'}, ),
+            'group': forms.Select(attrs={'class': 'form-control'})
+        }
+
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ('name', 'permissions')
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'permissions': forms.SelectMultiple(attrs={'class': 'form0-control'})
         }
