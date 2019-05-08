@@ -43,3 +43,13 @@ class ServiceForm(forms.ModelForm):
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
+
+
+class PackageForm(forms.ModelForm):
+    class Meta:
+        model = Package
+        fields = ('description', 'status', 'group')
+        widgets = {
+            'description': forms.TextInput(attrs={'class': 'form-control'}),
+            'status': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

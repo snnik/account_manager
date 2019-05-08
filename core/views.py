@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import auth
-from core.forms import CustomerForm, ServiceForm
+from core.forms import CustomerForm, ServiceForm, PackageForm
 from .models import *
 
 
@@ -74,7 +74,16 @@ def list_package(request):
 
 @login_required()
 def create_package(request):
-    return HttpResponse('Package created')
+    page_context = {'page_title': 'Создание пакета услуг'}
+    if request.method == 'POST':
+        form = PackageForm(request.POST)
+        if form.is_valid():
+            form.save()
+    else:
+        form = PackageForm()
+
+    page_context['form'] = form
+    return render(request, 'core/package_form.html', page_context)
 
 
 @login_required()
