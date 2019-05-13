@@ -1,16 +1,90 @@
-from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.http import HttpResponse, HttpResponseRedirect
-from django.contrib.auth.decorators import login_required, permission_required
-# from django.contrib.admin.forms import G
 from django.contrib import auth
-from core.forms import CustomerForm, ServiceForm, PackageForm, GroupForm
+from django.contrib.auth.decorators import login_required, permission_required
+from django.shortcuts import render, get_object_or_404, redirect
+from core.forms import *
 from .models import *
-
 
 # Create your views here.
 @login_required(login_url='base_login')
 def index(request):
-    return render(request, "core/dashboard.html", {'page_title': 'Панель управления'})
+    page_context = {'page_title': 'Панель управления'}
+    services = Service.objects.all()
+    # customer = request.user.customer
+
+    shortcuts = set()
+
+    for service in services:
+        permission_name = service._meta.app_label + '.' + service.fk_permission.codename
+
+        if request.user.has_perm(permission_name):
+            shortcuts.add(service)
+
+    page_context['shortcuts'] = shortcuts
+    # page_context['customer'] = customer
+    return render(request, "core/dashboard.html", page_context)
+
+
+@login_required()
+@permission_required('auth.view_user')
+def user_list(request):
+    page_context = {}
+
+    if request.user.is_superuser:
+        users = User.objects.all()
+    else:
+        users = User.objects.filter(is_superuser=False)
+
+    page_context['users'] = users
+    page_context['page_title'] = 'Пользователи'
+    return render(request, 'core/user_list.html', page_context)
+
+
+@login_required()
+@permission_required('auth.add_user')
+def create_user(request):
+    page_context = {'page_title': 'Создание пользователя'}
+    if request.method == 'POST':
+        user_form = CreateUserForm(request.POST)
+        try:
+            if user_form.is_valid():
+                if user_form.cleaned_data['password'] == user_form.cleaned_data['password1']:
+                    user = User.objects.create_user(username=user_form.cleaned_data['username'],
+                                                    password=user_form.cleaned_data['password'])
+                    log = Protocol()
+                    log.save(username=request.user.username,
+                             table='auth_user',
+                             action='add',
+                             obj=str(user),
+                             obj_id=user.pk)
+                    # return redirect('user_update', user_id=user.pk)
+                else:
+                    user_form.add_error('password1', 'Пароли не совпадают')
+        except Exception as e:
+            user_form.add_error('non_field_errors'.upper(), str(e))
+            log = Protocol()
+            log.save(username=request.user.username,
+                     table='auth_user',
+                     action='add',
+                     obj=str(user),
+                     obj_id=user.pk,
+                     error=str(e))
+    else:
+        user_form = CreateUserForm()
+    page_context['form'] = user_form
+    return render(request, 'core/user_detail.html', page_context)
+
+
+@login_required()
+@permission_required(('auth.change_user', 'auth.view_user'))
+def update_user(request, user_id):
+    pass
+
+
+@login_required()
+@permission_required('auth.delete_user')
+def delete_user(request, user_id):
+    pass
 
 
 @login_required(login_url='base_login')
@@ -22,6 +96,7 @@ def accounts_list(request):
 
 
 @login_required(login_url='base_login')
+@permission_required('core.view_service')
 def services_list(request):
     context = {'page_title': 'Сервисы'}
     services = Service.objects.all()
@@ -29,20 +104,22 @@ def services_list(request):
     return render(request, "core/services_list.html", context)
 
 
-@login_required()
+@login_required(login_url='base_login')
+@permission_required(('core.add_service', 'auth.add_permission'))
 def create_service(request):
     page_context = {'page_title': 'Создание сервиса'}
     if request.method == 'POST':
         form = ServiceForm(request.POST)
         if form.is_valid():
-            form.save()
+            service = form.save(commit=False)
+            service.save(username=request.user)
     else:
         form = ServiceForm()
     page_context['form'] = form
     return render(request, 'core/service_form.html', page_context)
 
 
-@login_required()
+@login_required(login_url='base_login')
 def update_service(request, service_id):
     service = get_object_or_404(Service, pk=service_id)
     page_context = {'page_title': 'Изменение сервиса'}
@@ -50,7 +127,8 @@ def update_service(request, service_id):
     if request.method == 'POST':
         form = ServiceForm(request.POST, instance=service)
         if form.is_valid():
-            form.save()
+            service = form.save(commit=False)
+            service.save(username=request.user)
     else:
         form = ServiceForm(instance=service)
 
@@ -76,28 +154,52 @@ def list_package(request):
 @login_required()
 def create_package(request):
     page_context = {'page_title': 'Создание пакета услуг'}
+
     if request.method == 'POST':
         form = PackageForm(request.POST)
-        group =  GroupForm(request.POST)
-        if form.is_valid():
-            form.save()
+        f_group = GroupForm(request.POST)
+        if form.is_valid() and f_group.is_valid():
+            package = form.save(commit=False)
+            package.save(username=request.user, permissions=f_group.cleaned_data['permissions'])
+            return redirect('package_update', sp_id=package.pk)
     else:
+        f_group = GroupForm()
         form = PackageForm()
-        group = GroupForm()
 
     page_context['form'] = form
-    page_context['group'] = group
+    page_context['group'] = f_group
     return render(request, 'core/package_form.html', page_context)
 
 
 @login_required()
 def delete_package(request, sp_id):
-    return HttpResponse('delete package' + str(sp_id))
+    package = get_object_or_404(Package, pk=sp_id)
+    group = package.group
+    group.delete()
+    return redirect('package_list')
 
 
 @login_required()
 def update_package(request, sp_id):
-    return HttpResponse('update package' + str(sp_id))
+    package = get_object_or_404(Package, pk=sp_id)
+    page_context = {'page_title': 'Пакет услуг ' + str(package.description) + ' : ' + str(package.pk)}
+
+    if request.method == 'POST':
+        package_form = PackageForm(request.POST, instance=package)
+        group_form = GroupForm(request.POST, instance=package.group)
+        if package_form.is_valid() and group_form.is_valid():
+            group = group_form.save(commit=False)
+            pkg = package_form.save(commit=False)
+            pkg.save(username=request.user,
+                     group=group.name,
+                     permissions=group_form.cleaned_data['permissions'])
+    else:
+        package_form = PackageForm(instance=package)
+        group_form = GroupForm(instance=package.group)
+
+    page_context['form'] = package_form
+    page_context['group'] = group_form
+    return render(request, 'core/package_form.html', page_context)
 
 
 @login_required(login_url='base_login')
@@ -115,59 +217,70 @@ def activate_account(request, customer_id):
 
 
 @login_required(login_url='base_login')
+@permission_required(('core.add_customer', 'auth.add_user'))
 def create_account(request):
+    page_context = {'page_title': 'Создание аккаунта'}
+    password = None
+    login = None
 
     if request.method == 'POST':
         form = CustomerForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('accounts_list')
+        account_form = AccountForm(request.POST)
+        if form.is_valid() and account_form.is_valid():
+            customer = form.save(commit=False)
+            groups = account_form.cleaned_data['groups']
+            login, password = customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
     else:
         form = CustomerForm()
+        account_form = AccountForm()
 
-    return render(request, 'core/account_detail.html', {'form': form})
+    page_context['form'] = form
+    page_context['account_form'] = account_form
+    page_context['password'] = password
+    page_context['login'] = login
+
+    return render(request, 'core/account_detail.html', page_context)
 
 
 @login_required(login_url='base_login')
 def update_account(request, customer_id):
-    errors = {}
+    context = {'page_title': 'изменение аккаунта'}
     customer = get_object_or_404(Customer, pk=customer_id, customer__is_active=True)
+    user = customer.customer
+
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=customer)
-        if form.is_valid():
-            customer.save(username=request.user)
-            return redirect('account_update', id=customer_id, customer__is_active=True)
-        else:
-            errors = form.errors
+        account_form = AccountForm(request.POST, instance=user)
+        if form.is_valid() and account_form.is_valid():
+            customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
+    else:
+        form = CustomerForm(instance=customer)
+        account_form = AccountForm(instance=user)
 
-    context = {}
-    form = CustomerForm(instance=customer)
     context['form'] = form
-
-    if errors:
-        context['error_list'] = errors
-
+    context['account_form'] = account_form
     return render(request, 'core/account_detail.html', context)
 
 
 @login_required(login_url='base_login')
-@permission_required('core.change_customer')
-def account_detail(request, customer_id, password=None, **kwargs):
+@permission_required(('core.change_customer', 'auth.change_user'))
+def account_detail(request, customer_id, **kwargs):
+    context = {'page_title': 'изменение аккаунта'}
     account = get_object_or_404(Customer, id=customer_id)
-    usr = request.user
+    user = account.customer
+
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=account)
-        if form.is_valid():
-            password = account.save(username=usr.username)
-
-            if password:
-                return redirect('account_detail', customer_id=customer_id, password=password)
-            else:
-                return redirect('account_detail', customer_id=customer_id)
+        account_form = AccountForm(request.POST, instance=user)
+        if form.is_valid() and account_form.is_valid():
+            account.save(username=request.user, groups=account_form.cleaned_data['groups'])
     else:
         form = CustomerForm(instance=account)
+        account_form = AccountForm(instance=user)
 
-    return render(request, 'core/account_detail.html', {'form': form, 'password': password})
+    context['form'] = form
+    context['account_form'] = account_form
+    return render(request, 'core/account_detail.html', context)
 
 
 def login(request):
@@ -185,9 +298,8 @@ def login(request):
         else:
             login_error = 'Сожалеем, вы неправильно ввели логин или пароль'
             context = {'login_error': login_error}
-            return render(request, 'core/base_login.html', context)
-    else:
-        return render(request, 'core/base_login.html', context)
+
+    return render(request, 'core/base_login.html', context)
 
 
 @login_required(login_url='base_login')

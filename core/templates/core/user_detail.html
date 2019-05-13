@@ -10,19 +10,30 @@
             <div class="row">
                 <div class="col">
                     <form method="post">{% csrf_token %}
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
                         {% for field in form %}
                         <div class="form-group col">
                             {{ field.label_tag }}
                             {{ field }}
+                            {% if field.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ field.errors }}
+                            </div>
+                            {% endif %}
                             {{ field.help_text }}
-                            {{ field.errors }}
                         </div>
                         {% endfor %}
-                        <a class="btn btn-warning float-left" href="{% url 'services_list' %}">Назад</a>
+                        <a class="btn btn-warning float-left" href="{% url 'user_list' %}">
+                            Назад
+                        </a>
                         <button class="btn btn-warning float-right">Сохранить</button>
                     </form>
                 </div>
-                </div>
+            </div>
         </div>
     </div>
 

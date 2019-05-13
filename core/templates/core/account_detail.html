@@ -4,28 +4,48 @@
 <div class="container">
     <div class="card overflow-auto  px-0 my-4 shadow">
         <div class="card-header">
-            <h5 class="text-center">Create account</h5>
+            <h5 class="text-center">{{ page_title }}</h5>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col">
-                    <form method="post">{% csrf_token %}
+           {% if login and password %}
+           <div class="alert alert-success alert-dismissible" id="myAlert">
+             <button type="button" class="close">&times;</button>
+             <strong>Учетные данные:</strong>
+             <p>Логин: {{ login }}</p>
+             <p>Пароль: {{ password }}</p>
+           </div>
+           {% endif %}
+            <form method="post">{% csrf_token %}
+                <div class="row">
+                    <div class="col">
                         {% for field in form %}
-                        <div class="form-group col">
-                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        <div class="form-group">
+                            {{ field.label_tag }}
                             {{ field }}
-                            {{ field.error }}
+                            {{ field.help_text }}
+                            {{ field.errors }}
                         </div>
                         {% endfor %}
-                        <a class="btn btn-warning float-left" href="{% url 'accounts_list' %}">
-                            Назад
-                        </a>
+                    </div>
+                    <div class="col">
+                        {% for field in account_form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {{ field.help_text }}
+                            {{ field.errors }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <a class="btn btn-warning float-left" href="{% url 'accounts_list' %}">Назад</a>
                         <button class="btn btn-warning float-right">Сохранить</button>
-                    </form>
+                    </div>
                 </div>
-                </div>
+            </form>
         </div>
     </div>
-
 </div>
 {% endblock content%}

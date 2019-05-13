@@ -2,8 +2,8 @@
 
  {% block content %}
   {% if user.is_anonymous %}
-    <div class="container h-75">
-      <div class="row h-75 justify-content-center align-items-center">
+    <div class="container">
+      <div class="row justify-content-center my-5">
         <form class="needs-validation col-auto align-self-center" action = "." method = "post" novalidate>
           {% csrf_token %}
           <div class="form-row">
@@ -12,7 +12,7 @@
                 <div class="input-group">
                 <input type="text" class="form-control" name = "username" id="username" placeholder="Логин" aria-describedby="inputGroupPrepend" required>
                 <div class="invalid-tooltip">
-                  Please choose a username.
+                  Ошибка! Введите логин!
                 </div>
               </div>
             </div>
@@ -22,20 +22,22 @@
               <label for="password">Введите пароль:</label>
               <input type="password" class="form-control" id="password" name="password" placeholder="Пароль" aria-describedby="inputGroupPrepend" required>
               <div class="invalid-tooltip">
-                Please enter password.
+                Ошибка! Введите пароль!
               </div>
-              {% if login_error %}
-              <div class="invalid-tooltip">
-                {{ login_error }}
-              </div>
-              {% endif %}
             </div>
           </div>
           </br>
           <button class="btn btn-primary" type="submit">Вход</button>
         </form>
         </div>
-         <script id="rendered-js">
+        {% if login_error %}
+        <div class="row justify-content-center" style="height: 20px">
+          <div class="alert alert-danger" role="alert">
+            <p><small>{{ login_error }}</small></p>
+          </div>
+        </div>
+        {% endif %}
+        <script id="rendered-js">
             (function() {
               'use strict';
               window.addEventListener('load', function() {
@@ -54,7 +56,6 @@
               }, false);
             })();
          </script>
-
     </div>
   {% endif %}
 {% endblock content %}

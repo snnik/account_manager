@@ -4,33 +4,40 @@
 <div class="container">
     <div class="card overflow-auto  px-0 my-4 shadow">
         <div class="card-header">
-            <h5 class="text-center">Create package</h5>
+            <h5 class="text-center">{{ page_title }}</h5>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col">
-                    <form method="post">{% csrf_token %}
+            {{ form.non_field_errors }}
+            <form method="post">{% csrf_token %}
+                <div class="row">
+                    <div class="col-lg-6">
                         {% for field in form %}
-                        <div class="form-group col">
+                        <div class="form-group">
                             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
                             {{ field.help_text }}
                             {{ field.errors }}
                         </div>
                         {% endfor %}
+                    </div>
+                    <div class="col-lg-6 overflow-auto" style="height: 250px">
                         {% for field in group %}
-                        <div class="form-group col">
+                        <div class="form-group">
                             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
                             {{ field.help_text }}
                             {{ field.errors }}
                         </div>
                         {% endfor %}
-                        <a class="btn btn-warning float-left" href="{% url 'services_list' %}">Назад</a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <a class="btn btn-warning float-left" href="{% url 'package_list' %}">Назад</a>
                         <button class="btn btn-warning float-right">Сохранить</button>
-                    </form>
+                    </div>
                 </div>
-                </div>
+            </form>
         </div>
     </div>
 

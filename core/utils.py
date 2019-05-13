@@ -55,7 +55,7 @@ class LoginGenerator:
                'товарищество', 'производственный', 'кооператив', 'унитарное', 'предприятие',
                'акционерное', 'открытое', 'закрытое', 'зао', 'пао', 'оао', 'пао', 'публичное', )
 
-    def create_login(self, login, postfix=''):
+    def create(self, login, postfix=''):
 
         if login:
             login = str(login)
@@ -96,7 +96,7 @@ class LoginGenerator:
 
         return str(translit(result, language_code=self.language, reversed=True))
 
-    def translit_generator(self, string):
+    def translit(self, string):
         if string:
             string = str(string)
         else:

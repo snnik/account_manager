@@ -3,6 +3,7 @@
 {% block content %}
 <div class="container mb-4 mt-3">
   <div class="row">
+    {% if not user.is_staff or not user.is_superuser %}
     <div class="col-md-4 d-none d-md-block mx-0 px-1">
       <div class="card bg-light shadow mt-0">
         <div class="card-header">
@@ -13,7 +14,7 @@
             <tbody>
               <tr>
                 <th><p class="card-text"><small>Наименование:</small></p></th>
-                <th><p class="card-text">ООО "Ромашка"</p></th>
+                <th><p class="card-text">{{ user.description }}</p></th>
               </tr>
               <tr>
                 <th><p class="card-text">Дата последнего входа</p></th>
@@ -26,42 +27,32 @@
             <a href="#" class="btn btn-outline-info btn-sm btn-block">Профиль</a>
           </div>
         </div>
-</div>
+      </div>
+      {% endif %}
     </div>
-    <div class="col-12 col-md-8 mx-0 px-1">
+    <div class="col mx-0 px-1">
       <div class="card bg-light shadow overflow-auto">
         <div class="card-header">
           <h5 class="card-title">Рабочая область</h5>
         </div>
         <div class="card-body">
           <div class="row align-items-start">
-            <div class="col col-sm-3">
-              <a href="{% url 'accounts_list' %}">
-                <img src="https://img.icons8.com/nolan/96/000000/key.png">
-              </a>
-            </div>
-            <div class="col col-sm-3">
-              <img src="https://img.icons8.com/nolan/96/000000/virtualbox.png">
-            </div>
-            <div class="col col-sm-3">
-              <img src="https://img.icons8.com/nolan/96/000000/opened-folder.png">
-            </div>
-            <div class="col col-sm-3">
-              <img src="https://img.icons8.com/nolan/96/000000/groups.png">
-            </div>
-            <div class="col col-sm-3">
-              <a href="{% url 'package_list' %}">
-                <img src="https://img.icons8.com/nolan/96/000000/id-verified.png">
-              </a>
-            </div>
-            <div class="col col-sm-3">
-              <a href="{% url 'services_list' %}">
-                <img src="https://img.icons8.com/nolan/96/000000/token-card-code.png">
-              </a>
-            </div>
-            <div class="col col-sm-3">
+            <div class="col col-sm-3 text-center">
               <img src="https://img.icons8.com/nolan/96/000000/settings.png">
+              <p>Настройки(для массовки)</p>
             </div>
+            {% for shortcut in shortcuts %}
+            <div class="col col-sm-3 text-center">
+              {% if not shortcut.is_service %}
+              <a href="{% url shortcut.url %}">
+              {% else %}
+              <a href="{{ shortcut.url }}">
+              {% endif %}
+                <img src="{{ shortcut.shortcut_path }}">
+                <p>{{ shortcut.description }}</p>
+              </a>
+            </div>
+            {% endfor %}
           </div>
         </div>
       </div>

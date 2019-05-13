@@ -12,7 +12,7 @@ class Service(models.Model):
         Permission,
         on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
-    url = models.URLField(unique=True, blank=False, verbose_name='URI ресурса')
+    url = models.TextField(unique=True, blank=False, verbose_name='URI ресурса')  # !!!!
     shortcut_path = models.TextField(verbose_name='Путь к ярлыку')
     is_service = models.BooleanField(default=True, verbose_name='Услуга/Служебный')
     status = models.BooleanField(default=True, verbose_name='Статус')
@@ -24,31 +24,30 @@ class Service(models.Model):
         # Function logging
         log = Protocol()
         table = 'core_service'
-        if 'username' in kwargs:
-            username = kwargs.pop('username')
-        else:
-            username = None
+        username = kwargs.get('username')
 
-        if self.pk is not None:
-            action = 'change'
-        else:
-            action = 'add'
-            translit_str = LoginGenerator()
+        if not self.is_service:
+            self.price = 0
+
         try:
-            content_type = ContentType.objects.get_for_model(Service)
-            permission, flag = Permission.objects.get_or_create(
-                codename=translit_str.translit_generator(self.description),
-                name=self.description,
-                content_type=content_type,
-            )
+            if self.pk:
+                action = 'change'
+            else:
+                action = 'add'
+                translit_str = LoginGenerator()
+                content_type = ContentType.objects.get_for_model(Service)
+                permission, flag = Permission.objects.get_or_create(
+                    codename=translit_str.translit(self.description),
+                    name=self.description,
+                    content_type=content_type,
+                )
+                self.fk_permission = permission
 
-            self.fk_permission = permission
-
+            kwargs.clear()
             super(Service, self).save(*args, **kwargs)
-            log.save(user=username, action=action, obj=str(self), obj_id=self.pk, table=table)
-            # Связь с разрешениями
+            log.save(user=str(username), action=action, obj=str(self), obj_id=self.pk, table=table)
         except Exception as e:
-            log.save(user=username, action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
+            log.save(user=str(username), action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
 
     def not_active(self, **kwargs):
         self.status = False
@@ -72,7 +71,7 @@ class Service(models.Model):
         return str(self.description)
 
 
-# пакет услуг подключаемых клиенту. Расширение системы прав.
+# пакет услуг подключаемых клиенту. Расширение системы групп.
 class Package(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
@@ -80,6 +79,46 @@ class Package(models.Model):
     status = models.BooleanField(default=True, verbose_name='Активен')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
+
+    def save(self, *args, **kwargs):
+        tg = LoginGenerator()
+        group_log = Protocol()
+        package_log = Protocol()
+        user = kwargs.get('username')
+        permissions = kwargs.get('permissions')
+        group_name = kwargs.get('group', tg.translit(self.description))
+
+        try:
+            group, flag = Group.objects.get_or_create(name=group_name)
+            table = 'auth_group'
+            if flag:
+                action = 'add'
+            else:
+                action = 'change'
+                group.permissions.clear()
+
+        except Exception as e:
+            group_log.save(action=action, obj=str(group), table=table, user=str(user.username),
+                           obj_id=group.pk, error=str(e))
+        if permissions:
+            for permission in permissions:
+                group.permissions.add(permission)
+
+        group_log.save(action=action, obj=str(group), table=table, user=str(user.username), obj_id=group.pk)
+        try:
+            if self.pk:
+                action = 'change'
+            else:
+                action = 'add'
+
+            table = 'core_package'
+            self.group = group
+            kwargs.clear()
+            super(Package, self).save(*args, **kwargs)
+        except Exception as e:
+            package_log.save(action=action, obj=str(self), table=table, user=str(user.username),
+                             obj_id=self.pk, error=str(e))
+        package_log.save(action=action, obj=str(self), table=table, user=str(user.username), obj_id=self.pk)
 
     def __str__(self):
         return self.description
@@ -109,21 +148,24 @@ class Customer(models.Model):
         return self.description
 
     def save(self, *args, **kwargs):
+        login = None
+        password = None
         usr = kwargs.get('username')
+        groups = kwargs.get('groups')
         password = kwargs.get('password')
 
         if not self.pk:
             action = 'add'
             log = Protocol()
             table = 'auth_user'
-            login = LoginGenerator().create_login(self.description)
+            login = LoginGenerator().create(self.description)
             password = PasswordGenerator().generate()
             try:
                 user = User.objects.create_user(username=login, password=password)
                 log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
             except Exception as e:
                 postfix = str(time.time()).split('.')[1]
-                login = LoginGenerator().create_login(self.description, postfix)
+                login = LoginGenerator().create(self.description, postfix)
                 user = User.objects.create_user(username=login, password=password)
                 log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
             table = 'core_customer'
@@ -131,6 +173,11 @@ class Customer(models.Model):
         else:
             action = 'change'
             table = 'core_customer'
+            user = self.customer
+            user.groups.clear()
+
+        for group in groups:
+            user.groups.add(group)
 
         clog = Protocol()
         kwargs.clear()
@@ -140,7 +187,7 @@ class Customer(models.Model):
         except Exception as e:
             clog.save(clog.save(action=action, obj=str(self), table=table, user=usr,
                                 obj_id=self.pk), error=str(e))
-        return password
+        return login, password
 
     def activate(self):
         user = self.customer

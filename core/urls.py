@@ -2,7 +2,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-   path('account/<int:customer_id>/update/', views.update_account, name='account_update'),
+   # path('account/<int:customer_id>/update/', views.update_account, name='account_update'),
+   path('user/list/', views.user_list, name='user_list'),
+   path('user/create', views.create_user, name='user_create'),
+   path('user/<int:user_id>/update', views.update_user, name='user_update'),
+   path('user/<int:user_id>/delete', views.delete_user, name='user_delete'),
    path('account/<int:customer_id>/detail/', views.account_detail, name='account_detail'),
    path('account/create/', views.create_account, name='account_create'),
    path('account/<int:customer_id>/deactivate/', views.deactivate_account, name='account_deactivate'),
@@ -15,7 +19,7 @@ urlpatterns = [
    path('package/list', views.list_package, name='package_list'),
    path('package/create', views.create_package, name='package_create'),
    path('package/<int:sp_id>/update/', views.update_package, name='package_update'),
-   path('package/<int:sp_id>/delete/', views.delete_package, name='pakcage_delete'),
+   path('package/<int:sp_id>/delete/', views.delete_package, name='package_delete'),
    path('base_login/', views.login, name='base_login'),
    path('logout/', views.logout, name='base_logout'),
    path('passchange/', views.password_change, name='passchange'),
