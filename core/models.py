@@ -126,7 +126,7 @@ class Package(models.Model):
 
 # Данные о юридичском лице. Расширение стандартного пользователя
 class Customer(models.Model):
-    phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$',
+    phone_regex = RegexValidator(regex=r'^\+?1?\d{6,15}$',
                                  message="Телефонный номер должен быть иметь следующий формат: '+999999999'. "
                                          "Максимальное количество цифр 15.")
     d_reg = RegexValidator(regex=r'^\d{9,15}$', message='Введите цифры')
