@@ -10,7 +10,7 @@ from .models import *
 def index(request):
     page_context = {'page_title': 'Панель управления'}
     services = Service.objects.all()
-    # customer = request.user.customer
+    customer = request.user.customer
 
     shortcuts = set()
 
@@ -21,7 +21,7 @@ def index(request):
             shortcuts.add(service)
 
     page_context['shortcuts'] = shortcuts
-    # page_context['customer'] = customer
+    page_context['customer'] = customer
     return render(request, "core/dashboard.html", page_context)
 
 

@@ -10,19 +10,25 @@
           <h5 class="card-title">Информация</h5>
         </div>
         <div class="card-body">
-          <table class="table table-borderless table-sm">
-            <tbody>
-              <tr>
-                <th><p class="card-text"><small>Наименование:</small></p></th>
-                <th><p class="card-text">{{ user.description }}</p></th>
-              </tr>
-              <tr>
-                <th><p class="card-text">Дата последнего входа</p></th>
-                <th></th>
-              </tr>
-              <tr></tr>
-            </tbody>
-          </table>
+          <h5>{{ customer.description }}</h5>
+          <ul>
+            <li>
+              <span class="label" st="label-main-id">ID Пользователя:</span>
+              {{ user.pk }}
+            </li>
+            <li>
+              <span class="label" st="label-main-id">Логин:</span>
+              {{ user.username }}
+            </li>
+            <li>
+              <span class="label" st="label-main-id">Тариф:</span>
+              {{ user.groups.name }}
+            </li>
+            <li>
+              <span class="label" st="label-main-id">Последний вход:</span>
+              {{ user.last_login }}
+            </li>
+          </ul>
           <div class="col">
             <a href="#" class="btn btn-outline-info btn-sm btn-block">Профиль</a>
           </div>
