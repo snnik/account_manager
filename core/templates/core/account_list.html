@@ -18,35 +18,39 @@
                         <thead>
                             <tr>
                                 <th>id</th>
+                                <th>Логин</th>
                                 <th>Наименование</th>
+                                <th>Последний логин</th>
                                 <th>Статус</th>
                                 <th colspan="2" class = "text-center">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for Customer in customer %}
+                            {% for customer in customer_list %}
                             <tr>
-                                <td>{{ Customer.pk }}</td>
-                                <td>{{ Customer.description }}</td>
+                                <td>{{ customer.customer.pk }}</td>
+                                <td>{{ customer.customer.username }}</td>
+                                <td>{{ customer.description }}</td>
+                                <td>{{ customer.customer.last_login }}</td>
                                 <td>
-                                    {% if Customer.customer.is_active %}
+                                    {% if customer.customer.is_active %}
                                         Активный
                                     {% else %}
                                         Неактивый
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'account_detail' Customer.pk %}">
+                                    <a href="{% url 'account_detail' customer.pk %}">
                                         Edit
                                     </a>
                                 </td>
                                 <td>
-                                    {% if Customer.customer.is_active %}
-                                    <a href="{% url 'account_deactivate' Customer.pk %}">
+                                    {% if customer.customer.is_active %}
+                                    <a href="{% url 'account_deactivate' customer.pk %}">
                                         Выключить
                                     </a>
                                     {% else %}
-                                    <a href="{% url 'account_activate' Customer.pk %}">
+                                    <a href="{% url 'account_activate' customer.pk %}">
                                         Включить
                                     </a>
                                     {% endif %}

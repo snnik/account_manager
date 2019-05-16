@@ -3,11 +3,11 @@
 {% block content %}
 <div class="container mb-4 mt-3">
   <div class="row">
-    {% if not user.is_staff or not user.is_superuser %}
+    {% if not user.is_staff and not user.is_superuser %}
     <div class="col-md-4 d-none d-md-block mx-0 px-1">
       <div class="card bg-light shadow mt-0">
         <div class="card-header">
-          <h5 class="card-title">Информация</h5>
+          <h5 class="card-title text-center">Информация</h5>
         </div>
         <div class="card-body">
           <h5>{{ customer.description }}</h5>
@@ -39,7 +39,7 @@
     <div class="col mx-0 px-1">
       <div class="card bg-light shadow overflow-auto">
         <div class="card-header">
-          <h5 class="card-title">Рабочая область</h5>
+          <h5 class="card-title text-center">Рабочая область</h5>
         </div>
         <div class="card-body">
           <div class="row align-items-start">

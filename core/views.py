@@ -1,27 +1,46 @@
+from django.views import View
 from django.http import HttpResponse, HttpResponseRedirect
+from django.utils.decorators import method_decorator
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, get_object_or_404, redirect
 from core.forms import *
 from .models import *
 
-# Create your views here.
+view_customer = [login_required(login_url='base_login')]
+# permission_required(('core.view_customer', 'auth,view_user'), raise_exception=True)
+
+
+@method_decorator(view_customer, name='dispatch')
+class CustomerList(View):
+    page_context = {'page_title': 'Клиенты:', 'customer_list': Customer.objects.all()}
+    template_name = 'core/account_list.html'
+
+    def get(self, request):
+        if request.user.has_perms(('core.view_customer', 'auth.view_user')):
+            return render(request, self.template_name, self.page_context)
+        else:
+            return redirect('dashboard')
+
+
 @login_required(login_url='base_login')
 def index(request):
     page_context = {'page_title': 'Панель управления'}
     services = Service.objects.all()
-    customer = request.user.customer
+    user = request.user
+    if not (user.is_superuser or user.is_staff):
+        customer = user.customer
+        page_context['customer'] = customer
 
     shortcuts = set()
 
     for service in services:
         permission_name = service._meta.app_label + '.' + service.fk_permission.codename
 
-        if request.user.has_perm(permission_name):
+        if user.has_perm(permission_name):
             shortcuts.add(service)
 
     page_context['shortcuts'] = shortcuts
-    page_context['customer'] = customer
     return render(request, "core/dashboard.html", page_context)
 
 
