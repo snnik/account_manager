@@ -6,9 +6,9 @@
         <div class="col overflow-auto">
             <div class="card shadow">
                 <div class="card-header">
-                    <p><h5  class="text-center">{{ page_title }}</h5></p>
+                    <h5  class="text-center">{{ page_title }}</h5>
                     <a type = "button" class="btn btn-secondary float-left" href="/">Назад</a>
-                    <a type="button" class="btn btn-secondary float-right" href="{% url 'user_create' %}">
+                    <a type="button" class="btn btn-secondary float-right" href="{% url 'package_create' %}">
                         Добавить
                     </a>
                 </div>
@@ -17,41 +17,31 @@
                      <table class="table table-striped overflow-auto" onclick="idvalue()">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Логин</th>
-                                <th>Имя пользователя</th>
+                                <th>id</th>
+                                <th>Наименование</th>
                                 <th>Статус</th>
                                 <th colspan="2" class = "text-center">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user in user_list %}
+                            {% for package in package_list %}
                             <tr>
-                                <td>{{ user.pk }}</td>
-                                <td>{{ user.username }}</td>
-                                <td>{{user.first_name }} {{user.last_name }}</td>
+                                <td>{{ package.pk }}</td>
+                                <td>{{ package.description }}</td>
                                 <td>
-                                    {% if user.is_active %}
+                                    {% if package.status %}
                                         Активный
                                     {% else %}
                                         Неактивый
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="#">
-                                        Edit
+                                    <a class="btn btn-warning float-right" href="{% url 'package_delete' package.pk %}">
+                                        Удалить
                                     </a>
-                                </td>
-                                <td>
-                                    {% if user.is_active %}
-                                    <a href="#">
-                                        Выключить
+                                    <a class="btn btn-warning float-right" href="{% url 'package_update' package.pk %}">
+                                        Редактировать
                                     </a>
-                                    {% else %}
-                                    <a href="#">
-                                        Включить
-                                    </a>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

@@ -8,7 +8,7 @@
                 <div class="card-header">
                     <h5  class="text-center">{{ page_title }}</h5>
                     <a type = "button" class="btn btn-secondary float-left" href="/">Назад</a>
-                    <a type="button" class="btn btn-secondary float-right" href="{% url 'package_create' %}">
+                    <a type="button" class="btn btn-secondary float-right" href="#">
                         Добавить
                     </a>
                 </div>
@@ -24,22 +24,22 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for package in packages %}
+                            {% for group in group_list %}
                             <tr>
-                                <td>{{ package.pk }}</td>
-                                <td>{{ package.description }}</td>
+                                <td>{{ group.pk }}</td>
+                                <td>{{ group }}</td>
                                 <td>
-                                    {% if package.status %}
+                                    {% if group.status %}
                                         Активный
                                     {% else %}
                                         Неактивый
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a class="btn btn-warning float-right" href="{% url 'package_delete' package.pk %}">
+                                    <a class="btn btn-warning float-right" href="#">
                                         Удалить
                                     </a>
-                                    <a class="btn btn-warning float-right" href="{% url 'package_update' package.pk %}">
+                                    <a class="btn btn-warning float-right" href="#">
                                         Редактировать
                                     </a>
                                 </td>

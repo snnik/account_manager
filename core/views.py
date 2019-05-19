@@ -1,26 +1,63 @@
 from django.views import View
+from django.views.generic import DetailView, ListView
+from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpResponse, HttpResponseRedirect
-from django.utils.decorators import method_decorator
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, get_object_or_404, redirect
 from core.forms import *
-from .models import *
-
-view_customer = [login_required(login_url='base_login')]
-# permission_required(('core.view_customer', 'auth,view_user'), raise_exception=True)
+from .models import Customer, Service, Package, Protocol
 
 
-@method_decorator(view_customer, name='dispatch')
-class CustomerList(View):
-    page_context = {'page_title': 'Клиенты:', 'customer_list': Customer.objects.all()}
+#
+class ObjectsLists(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    view_title = None
+    page_title = None
+    permission_required = ''
+
+    def get_context_data(self, **kwargs):
+            context = super(ObjectsLists, self).get_context_data(**kwargs)
+            context['page_title'] = self.view_title
+            context['view_title'] = self.view_title
+            return context
+
+
+class CustomerList(ObjectsLists):
+    model = Customer
+    view_title = 'Клиенты'
+    page_title = ''
+    permission_required = ('core.view_customer', 'auth.view_user')
+
+
+class AccountList(ObjectsLists):
+    model = User
     template_name = 'core/account_list.html'
+    view_title = 'Accounts'
+    page_title = ''
+    permission_required = ('auth.view_user',)
 
-    def get(self, request):
-        if request.user.has_perms(('core.view_customer', 'auth.view_user')):
-            return render(request, self.template_name, self.page_context)
-        else:
-            return redirect('dashboard')
+
+class ServiceList(ObjectsLists):
+    model = Service
+    view_title = 'Service'
+    page_title = 'Services'
+    permission_required = ('core.view_service',)
+
+
+class PackageList(ObjectsLists):
+    model = Package
+    view_title = 'Package'
+    page_title = 'Packages'
+    permission_required = ('core.view_package',)
+
+
+class GroupList(ObjectsLists):
+    model = Group
+    template_name = 'core/group_list.html'
+    view_title = 'Group'
+    page_title = 'Groups'
+    permission_required = ('auth.group_view',)
 
 
 @login_required(login_url='base_login')
@@ -42,21 +79,6 @@ def index(request):
 
     page_context['shortcuts'] = shortcuts
     return render(request, "core/dashboard.html", page_context)
-
-
-@login_required()
-@permission_required('auth.view_user')
-def user_list(request):
-    page_context = {}
-
-    if request.user.is_superuser:
-        users = User.objects.all()
-    else:
-        users = User.objects.filter(is_superuser=False)
-
-    page_context['users'] = users
-    page_context['page_title'] = 'Пользователи'
-    return render(request, 'core/user_list.html', page_context)
 
 
 @login_required()
@@ -91,7 +113,7 @@ def create_user(request):
     else:
         user_form = CreateUserForm()
     page_context['form'] = user_form
-    return render(request, 'core/user_detail.html', page_context)
+    return render(request, 'core/account_detail.html', page_context)
 
 
 @login_required()
@@ -104,23 +126,6 @@ def update_user(request, user_id):
 @permission_required('auth.delete_user')
 def delete_user(request, user_id):
     pass
-
-
-@login_required(login_url='base_login')
-def accounts_list(request):
-    page_context = {}
-    page_context['page_title'] = 'Аккаунты'
-    page_context['customer'] = Customer.objects.all()
-    return render(request, 'core/account_list.html', context=page_context)
-
-
-@login_required(login_url='base_login')
-@permission_required('core.view_service')
-def services_list(request):
-    context = {'page_title': 'Сервисы'}
-    services = Service.objects.all()
-    context['services'] = services
-    return render(request, "core/services_list.html", context)
 
 
 @login_required(login_url='base_login')
@@ -167,7 +172,7 @@ def delete_service(request, service_id):
 def list_package(request):
     packages = Package.objects.all()
     page_context = {'page_title': 'Список пакетов услуг', 'packages': packages}
-    return render(request, 'core/packages_list.html', page_context)
+    return render(request, 'core/package_list.html', page_context)
 
 
 @login_required()
@@ -258,7 +263,7 @@ def create_account(request):
     page_context['password'] = password
     page_context['login'] = login
 
-    return render(request, 'core/account_detail.html', page_context)
+    return render(request, 'core/customer_detail.html', page_context)
 
 
 @login_required(login_url='base_login')
@@ -278,7 +283,7 @@ def update_account(request, customer_id):
 
     context['form'] = form
     context['account_form'] = account_form
-    return render(request, 'core/account_detail.html', context)
+    return render(request, 'core/customer_detail.html', context)
 
 
 @login_required(login_url='base_login')
@@ -299,7 +304,7 @@ def account_detail(request, customer_id, **kwargs):
 
     context['form'] = form
     context['account_form'] = account_form
-    return render(request, 'core/account_detail.html', context)
+    return render(request, 'core/customer_detail.html', context)
 
 
 def login(request):
