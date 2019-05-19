@@ -1,0 +1,28 @@
+{% extends "core/index.html" %}
+
+{% block content %}
+<div class="container my-3">
+    <div class="row">
+        <div class="col overflow-auto">
+            <div class="card shadow">
+                <div class="card-header">
+                    <p><h5  class="text-center">{{ page_title }}</h5></p>
+                    <a type = "button" class="btn btn-secondary float-left" href="/">Назад</a>
+                    <a type="button" class="btn btn-secondary float-right" href="{% url 'account_create' %}">
+                        Добавить
+                    </a>
+                </div>
+                <div class="card-body">
+                     <table class="table table-striped overflow-auto" onclick="idvalue()">
+                        {% include 'core/list_head.html' %}
+                        <tbody>
+                            {% block list %}
+                            {% endblock list %}
+                        </tbody>
+                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content%}

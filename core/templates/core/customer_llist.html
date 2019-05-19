@@ -1,0 +1,45 @@
+{% extends 'core/list.html' %}
+
+{% block head_list %}
+<thead>
+    <tr>
+        {% for head in heads %}
+            <th>{{ head }}</th>
+        {% endfor %}
+    </tr>
+</thead>
+{% endblock head_list %}
+
+{% block list %}
+    {% for customer in object_list %}
+    <tr>
+        <td>{{ customer.customer.pk }}</td>
+        <td>{{ customer.customer.username }}</td>
+        <td>{{ customer.description }}</td>
+        <td>{{ customer.customer.last_login }}</td>
+        <td>
+            {% if customer.customer.is_active %}
+                Активный
+            {% else %}
+                Неактивый
+            {% endif %}
+        </td>
+        <td>
+            <a href="{% url 'account_detail' customer.pk %}">
+                Edit
+            </a>
+        </td>
+        <td>
+            {% if customer.customer.is_active %}
+            <a href="{% url 'account_deactivate' customer.pk %}">
+                Выключить
+            </a>
+            {% else %}
+            <a href="{% url 'account_activate' customer.pk %}">
+                Включить
+            </a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+{% endblock list %}

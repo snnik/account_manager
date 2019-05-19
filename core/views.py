@@ -15,24 +15,28 @@ class ObjectsLists(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     view_title = None
     page_title = None
     permission_required = ''
+    heads = None
+    # template_name = 'core/list.html'
 
     def get_context_data(self, **kwargs):
-            context = super(ObjectsLists, self).get_context_data(**kwargs)
-            context['page_title'] = self.view_title
-            context['view_title'] = self.view_title
-            return context
+        context = super(ObjectsLists, self).get_context_data(**kwargs)
+        context['page_title'] = self.view_title
+        context['view_title'] = self.view_title
+        context['heads'] = self.heads
+        return context
 
 
 class CustomerList(ObjectsLists):
     model = Customer
     view_title = 'Клиенты'
     page_title = ''
+    heads = ('ID', 'Логин', 'Наименование', 'Последний логин', 'Статус',)
     permission_required = ('core.view_customer', 'auth.view_user')
 
 
 class AccountList(ObjectsLists):
     model = User
-    template_name = 'core/account_list.html'
+    heads = ('ID', 'Логин', 'Имя пользователя', 'Статус',)
     view_title = 'Accounts'
     page_title = ''
     permission_required = ('auth.view_user',)
@@ -40,6 +44,7 @@ class AccountList(ObjectsLists):
 
 class ServiceList(ObjectsLists):
     model = Service
+    heads = ('id', 'Наименование', 'Статус',)
     view_title = 'Service'
     page_title = 'Services'
     permission_required = ('core.view_service',)
@@ -47,6 +52,7 @@ class ServiceList(ObjectsLists):
 
 class PackageList(ObjectsLists):
     model = Package
+    heads = ('id', 'Наименование', 'Статус',)
     view_title = 'Package'
     page_title = 'Packages'
     permission_required = ('core.view_package',)
@@ -54,10 +60,14 @@ class PackageList(ObjectsLists):
 
 class GroupList(ObjectsLists):
     model = Group
-    template_name = 'core/group_list.html'
+    heads = ('id', 'Наименование', 'Статус',)
     view_title = 'Group'
     page_title = 'Groups'
     permission_required = ('auth.group_view',)
+
+
+class ObjectDetail(DetailView):
+    pass
 
 
 @login_required(login_url='base_login')
@@ -79,6 +89,8 @@ def index(request):
 
     page_context['shortcuts'] = shortcuts
     return render(request, "core/dashboard.html", page_context)
+
+
 
 
 @login_required()
