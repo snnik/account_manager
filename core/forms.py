@@ -1,6 +1,6 @@
 from django import forms
-from django.contrib.auth.models import User, Group
 from .models import *
+from django.contrib.auth import password_validation
 
 
 class CustomerForm(forms.ModelForm):
@@ -53,16 +53,31 @@ class CreateUserForm(forms.ModelForm):
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'password': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
+
+    # password = forms.CharField(
+    #     widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+    #     help_text='Ваш пароль не должен совпадать с вашим именем или' +
+    #               'другой персональной информацией или быть слишком' +
+    #               'похожим на неё.\n Ваш пароль должен содержать как минимум' +
+    #               '8 символов.\n Ваш пароль не может быть одним из широко' +
+    #               'распространённых паролей.\n Ваш пароль не может состоять' +
+    #               'только из цифр.',
+    #     label='Пароль:',
+    #     validators=password_validation.get_default_password_validators()
+    # )
+
     password1 = forms.CharField(widget=forms.PasswordInput(
         attrs={'class': 'form-control'}),
         label='Подтверждение пароля',
-        help_text='Ваш пароль не должен совпадать с вашим именем или' +
-                  'другой персональной информацией или быть слишком' +
-                  'похожим на неё.\n Ваш пароль должен содержать как минимум' +
-                  '8 символов.\n Ваш пароль не может быть одним из широко' +
-                  'распространённых паролей.\n Ваш пароль не может состоять' +
-                  'только из цифр.'
+        help_text='Подтвердите пароль',
         )
+
+    # Перегрузить метод save
+    def clean(self):
+        cleaned_data = super(CreateUserForm, self).clean()
+        password_validation.validate_password(cleaned_data['password'])
+        if not cleaned_data['password1'] == cleaned_data['password']:
+            raise forms.ValidationError('Пароли не совпадают. Повторите ввод паролей.')
 
 
 class ServiceForm(forms.ModelForm):

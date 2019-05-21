@@ -6,8 +6,8 @@
       <div class="row justify-content-center my-5">
         <form class="needs-validation col-auto align-self-center" action = "." method = "post" novalidate>
           {% csrf_token %}
-          <div class="form-row">
-              <div class="col">
+          <div class="form-col">
+<!--              <div class="col">-->
                 <label for="username">Введите логин пользователя:</label>
                 <div class="input-group">
                 <input type="text" class="form-control" name = "username" id="username" placeholder="Логин" aria-describedby="inputGroupPrepend" required>
@@ -15,16 +15,16 @@
                   Ошибка! Введите логин!
                 </div>
               </div>
-            </div>
+<!--            </div>-->
           </div>
-          <div class="form-row">
-            <div class="col">
+          <div class="form-col">
+<!--            <div class="col">-->
               <label for="password">Введите пароль:</label>
               <input type="password" class="form-control" id="password" name="password" placeholder="Пароль" aria-describedby="inputGroupPrepend" required>
               <div class="invalid-tooltip">
                 Ошибка! Введите пароль!
               </div>
-            </div>
+<!--            </div>-->
           </div>
           </br>
           <button class="btn btn-primary" type="submit">Вход</button>

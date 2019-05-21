@@ -1,28 +1,27 @@
-from django.views import View
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, FormView
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
-from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse_lazy
 from core.forms import *
 from .models import Customer, Service, Package, Protocol
 
 
-#
 class ObjectsLists(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     view_title = None
     page_title = None
     permission_required = ''
     heads = None
-    # template_name = 'core/list.html'
+    create_uri = 'dashboard'
 
     def get_context_data(self, **kwargs):
         context = super(ObjectsLists, self).get_context_data(**kwargs)
         context['page_title'] = self.view_title
         context['view_title'] = self.view_title
         context['heads'] = self.heads
+        context['create_uri'] = self.create_uri
         return context
 
 
@@ -36,10 +35,12 @@ class CustomerList(ObjectsLists):
 
 class AccountList(ObjectsLists):
     model = User
+    template_name = 'core/account_list.html'
     heads = ('ID', 'Логин', 'Имя пользователя', 'Статус',)
     view_title = 'Accounts'
     page_title = ''
     permission_required = ('auth.view_user',)
+    create_uri = 'user_create'
 
 
 class ServiceList(ObjectsLists):
@@ -60,6 +61,7 @@ class PackageList(ObjectsLists):
 
 class GroupList(ObjectsLists):
     model = Group
+    template_name = 'core/group_list.html'
     heads = ('id', 'Наименование', 'Статус',)
     view_title = 'Group'
     page_title = 'Groups'
@@ -68,6 +70,55 @@ class GroupList(ObjectsLists):
 
 class ObjectDetail(DetailView):
     pass
+
+
+# Секция создание записей
+class ObjectCreate(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    permission = None
+    page_title = None
+    form_title = None
+    permission_required = ()
+
+
+class AccountCreate(ObjectCreate):
+    form_class = CreateUserForm
+    template_name = 'core/account_detail.html'
+    success_url = reverse_lazy('user_list')
+
+    def create_account(self, username, password):
+        try:
+            obj = User.objects.create_user(username=username, password=password)
+            action = 'add'
+        except Exception as err_msg:
+            action = 'error'
+        finally:
+            log = Protocol()
+            log.save(username=self.request.user.username,
+                     table='auth_user',
+                     action=action,
+                     obj=str(obj),
+                     obj_id=obj.pk or None,
+                     error=err_msg or None)
+        return err_msg
+
+    def form_valid(self, form):
+        e = self.create_account(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
+        if e:
+            form.add_error('non_field_errors'.upper(), str(e))
+            self.get(self.request) # htlbhtrn yf ct,z
+        else:
+            return redirect(self.success_url)
+
+
+class CustomerCreate(ObjectCreate):
+    form_class = CustomerForm
+    template_name = 'core/customer_detail.html'
+    success_url = 'customer_list'
+    password = None
+    login = None
+
+    def form_valid(self, form):
+        pass
 
 
 @login_required(login_url='base_login')
@@ -93,39 +144,39 @@ def index(request):
 
 
 
-@login_required()
-@permission_required('auth.add_user')
-def create_user(request):
-    page_context = {'page_title': 'Создание пользователя'}
-    if request.method == 'POST':
-        user_form = CreateUserForm(request.POST)
-        try:
-            if user_form.is_valid():
-                if user_form.cleaned_data['password'] == user_form.cleaned_data['password1']:
-                    user = User.objects.create_user(username=user_form.cleaned_data['username'],
-                                                    password=user_form.cleaned_data['password'])
-                    log = Protocol()
-                    log.save(username=request.user.username,
-                             table='auth_user',
-                             action='add',
-                             obj=str(user),
-                             obj_id=user.pk)
-                    # return redirect('user_update', user_id=user.pk)
-                else:
-                    user_form.add_error('password1', 'Пароли не совпадают')
-        except Exception as e:
-            user_form.add_error('non_field_errors'.upper(), str(e))
-            log = Protocol()
-            log.save(username=request.user.username,
-                     table='auth_user',
-                     action='add',
-                     obj=str(user),
-                     obj_id=user.pk,
-                     error=str(e))
-    else:
-        user_form = CreateUserForm()
-    page_context['form'] = user_form
-    return render(request, 'core/account_detail.html', page_context)
+# @login_required()
+# @permission_required('auth.add_user')
+# def create_user(request):
+#     page_context = {'page_title': 'Создание пользователя'}
+#     if request.method == 'POST':
+#         user_form = CreateUserForm(request.POST)
+#         try:
+#             if user_form.is_valid():
+#                 if user_form.cleaned_data['password'] == user_form.cleaned_data['password1']:
+#                     user = User.objects.create_user(username=user_form.cleaned_data['username'],
+#                                                     password=user_form.cleaned_data['password'])
+#                     log = Protocol()
+#                     log.save(username=request.user.username,
+#                              table='auth_user',
+#                              action='add',
+#                              obj=str(user),
+#                              obj_id=user.pk)
+#                     # return redirect('user_update', user_id=user.pk)
+#                 else:
+#                     user_form.add_error('password1', 'Пароли не совпадают')
+#         except Exception as e:
+#             user_form.add_error('non_field_errors'.upper(), str(e))
+#             log = Protocol()
+#             log.save(username=request.user.username,
+#                      table='auth_user',
+#                      action='add',
+#                      obj=str(user),
+#                      obj_id=user.pk,
+#                      error=str(e))
+#     else:
+#         user_form = CreateUserForm()
+#     page_context['form'] = user_form
+#     return render(request, 'core/account_detail.html', page_context)
 
 
 @login_required()
@@ -264,7 +315,6 @@ def create_account(request):
         account_form = AccountForm(request.POST)
         if form.is_valid() and account_form.is_valid():
             customer = form.save(commit=False)
-            groups = account_form.cleaned_data['groups']
             login, password = customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
     else:
         form = CustomerForm()
@@ -324,6 +374,7 @@ def login(request):
     if request.method == 'POST':
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
+
         user = auth.authenticate(username=username, password=password)
         if user is not None:
             auth.login(request, user)

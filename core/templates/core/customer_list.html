@@ -1,15 +1,4 @@
 {% extends 'core/list.html' %}
-
-{% block head_list %}
-<thead>
-    <tr>
-        {% for head in heads %}
-            <th>{{ head }}</th>
-        {% endfor %}
-    </tr>
-</thead>
-{% endblock head_list %}
-
 {% block list %}
     {% for customer in object_list %}
     <tr>
