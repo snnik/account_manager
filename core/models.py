@@ -4,6 +4,7 @@ from django.contrib.auth.models import User, Permission, Group
 from django.core.validators import RegexValidator, EmailValidator
 from django.contrib.contenttypes.models import ContentType
 from .utils import PasswordGenerator, LoginGenerator
+from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
 
 
 # Расширение модели прав, связка для сервиса
@@ -21,19 +22,14 @@ class Service(models.Model):
     is_update = models.DateTimeField(auto_now=True, verbose_name='Дата модификации')
 
     def save(self, *args, **kwargs):
-        # Function logging
-        log = Protocol()
-        table = 'core_service'
-        username = kwargs.get('username')
-
+        user = kwargs.get('username')
         if not self.is_service:
             self.price = 0
-
         try:
             if self.pk:
-                action = 'change'
+                action = CHANGE
             else:
-                action = 'add'
+                action = ADDITION
                 translit_str = LoginGenerator()
                 content_type = ContentType.objects.get_for_model(Service)
                 permission, flag = Permission.objects.get_or_create(
@@ -42,12 +38,22 @@ class Service(models.Model):
                     content_type=content_type,
                 )
                 self.fk_permission = permission
-
             kwargs.clear()
             super(Service, self).save(*args, **kwargs)
-            log.save(user=str(username), action=action, obj=str(self), obj_id=self.pk, table=table)
+            LogEntry.objects.log_action(
+                user_id=user.id,
+                content_type_id=content_type.pk,
+                object_id=self.pk,
+                object_repr=repr(self),
+                action_flag=action
+            )
         except Exception as e:
-            log.save(user=str(username), action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
+            LogEntry.objects.log_action(
+                user_id=user.id,
+                content_type_id=content_type.pk,
+                object_id=self.pk,
+                object_repr=repr(e),
+                action_flag=action)
 
     def not_active(self, **kwargs):
         self.status = False
@@ -58,14 +64,24 @@ class Service(models.Model):
         self.save(username=kwargs.get('username'))
 
     def delete(self, *args, **kwargs):
-        log = Protocol()
-        action = 'delete'
-        table = 'core_service'
+        user = kwargs.get('username')
+        action = DELETION
         try:
             super(Service, self).delete(using=None, keep_parents=False)
-            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table)
+            LogEntry.objects.log_action(
+                user_id=user,
+                content_type_id=ContentType.objects.get_for_model(Service),
+                object_id=self.pk,
+                object_repr=repr(self),
+                action_flag=action
+            )
         except Exception as e:
-            log.save(user=kwargs.get('username'), action=action, obj=str(self), obj_id=self.pk, table=table, error=str(e))
+            LogEntry.objects.log_action(
+                user_id=user.id,
+                content_type_id=ContentType.objects.get_for_model(Service),
+                object_id=self.pk,
+                object_repr=repr(e),
+                action_flag=action)
 
     def __str__(self):
         return str(self.description)
@@ -82,43 +98,57 @@ class Package(models.Model):
 
     def save(self, *args, **kwargs):
         tg = LoginGenerator()
-        group_log = Protocol()
-        package_log = Protocol()
         user = kwargs.get('username')
         permissions = kwargs.get('permissions')
         group_name = kwargs.get('group', tg.translit(self.description))
-
         try:
             group, flag = Group.objects.get_or_create(name=group_name)
-            table = 'auth_group'
             if flag:
-                action = 'add'
+                action = ADDITION
             else:
-                action = 'change'
+                action = CHANGE
                 group.permissions.clear()
-
         except Exception as e:
-            group_log.save(action=action, obj=str(group), table=table, user=str(user.username),
-                           obj_id=group.pk, error=str(e))
+            LogEntry.objects.log_action(
+                user_id=user,
+                content_type_id=ContentType.objects.get_for_model(Service),
+                object_id=self.pk,
+                object_repr=repr(e),
+                action_flag=action
+            )
         if permissions:
             for permission in permissions:
                 group.permissions.add(permission)
-
-        group_log.save(action=action, obj=str(group), table=table, user=str(user.username), obj_id=group.pk)
+        LogEntry.objects.log_action(
+            user_id=user,
+            content_type_id=ContentType.objects.get_for_model(Service),
+            object_id=self.pk,
+            object_repr=repr(self),
+            action_flag=action
+        )
         try:
             if self.pk:
-                action = 'change'
+                action = CHANGE
             else:
-                action = 'add'
-
-            table = 'core_package'
+                action = ADDITION
             self.group = group
             kwargs.clear()
             super(Package, self).save(*args, **kwargs)
         except Exception as e:
-            package_log.save(action=action, obj=str(self), table=table, user=str(user.username),
-                             obj_id=self.pk, error=str(e))
-        package_log.save(action=action, obj=str(self), table=table, user=str(user.username), obj_id=self.pk)
+            LogEntry.objects.log_action(
+                user_id=user,
+                content_type_id=ContentType.objects.get_for_model(Service),
+                object_id=self.pk,
+                object_repr=repr(e),
+                action_flag=action
+            )
+        LogEntry.objects.log_action(
+            user_id=user,
+            content_type_id=ContentType.objects.get_for_model(Service),
+            object_id=self.pk,
+            object_repr=repr(self),
+            action_flag=action
+        )
 
     def __str__(self):
         return self.description
@@ -150,43 +180,59 @@ class Customer(models.Model):
     def save(self, *args, **kwargs):
         login = None
         password = None
-        usr = kwargs.get('username')
+        user = kwargs.get('username')
         groups = kwargs.get('groups')
         password = kwargs.get('password')
 
         if not self.pk:
-            action = 'add'
-            log = Protocol()
-            table = 'auth_user'
+            action = ADDITION
             login = LoginGenerator().create(self.description)
             password = PasswordGenerator().generate()
             try:
-                user = User.objects.create_user(username=login, password=password)
-                log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
+                account = User.objects.create_user(username=login, password=password)
+                LogEntry.objects.log_action(
+                    user_id=user,
+                    content_type_id=ContentType.objects.get_for_model(Customer),
+                    object_id=self.pk,
+                    object_repr=repr(account),
+                    action_flag=action
+                )
             except Exception as e:
                 postfix = str(time.time()).split('.')[1]
                 login = LoginGenerator().create(self.description, postfix)
-                user = User.objects.create_user(username=login, password=password)
-                log.save(action=action, obj=str(user.username), table=table, user=usr, obj_id=user.pk)
-            table = 'core_customer'
-            self.customer = user
+                account = User.objects.create_user(username=login, password=password)
+                LogEntry.objects.log_action(
+                    user_id=user,
+                    content_type_id=ContentType.objects.get_for_model(Customer),
+                    object_id=self.pk,
+                    object_repr=repr(account),
+                    action_flag=action
+                )
+            self.customer = account
         else:
-            action = 'change'
-            table = 'core_customer'
-            user = self.customer
-            user.groups.clear()
-
+            action = CHANGE
+            account = self.customer
+            account.groups.clear()
         for group in groups:
-            user.groups.add(group)
-
-        clog = Protocol()
+            account.groups.add(group)
         kwargs.clear()
         try:
             super(Customer, self).save(*args, **kwargs)
-            clog.save(action=action, obj=str(self), table=table, user=usr, obj_id=self.pk)
+            LogEntry.objects.log_action(
+                user_id=user,
+                content_type_id=ContentType.objects.get_for_model(Customer),
+                object_id=self.pk,
+                object_repr=repr(self),
+                action_flag=action
+            )
         except Exception as e:
-            clog.save(clog.save(action=action, obj=str(self), table=table, user=usr,
-                                obj_id=self.pk), error=str(e))
+            LogEntry.objects.log_action(
+                user_id=user,
+                content_type_id=ContentType.objects.get_for_model(Customer),
+                object_id=self.pk,
+                object_repr=repr(e),
+                action_flag=action
+            )
         return login, password
 
     def activate(self):
@@ -237,3 +283,9 @@ class Protocol(models.Model):
 
     def __str__(self):
         return self.action
+
+
+# class Account(User):
+#     def save(self, *args, **kwargs):
+#
+#         super(Account, self).save(*args, **kwargs)
