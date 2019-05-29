@@ -34,7 +34,7 @@ class ServiceList(ObjectsLists):
     view_title = 'Service'
     page_title = 'Services'
     permission_required = ('core.view_service',)
-    create_uri = 'services_list'
+    create_uri = 'service_create'
 
 
 class PackageList(ObjectsLists):
@@ -43,7 +43,7 @@ class PackageList(ObjectsLists):
     view_title = 'Package'
     page_title = 'Packages'
     permission_required = ('core.view_package',)
-    create_uri = 'package_list'
+    create_uri = 'package_create'
 
 
 class GroupList(ObjectsLists):
