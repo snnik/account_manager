@@ -1,5 +1,6 @@
 from django import forms
 from .models import *
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import password_validation
 
 
@@ -113,3 +114,117 @@ class GroupForm(forms.ModelForm):
         widgets = {
             'permissions': forms.CheckboxSelectMultiple()
         }
+
+
+class ChangePassword(forms.Form):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'id': 'password', 'required': True}),
+        label='Пароль',
+        help_text='<p>Ваш пароль не должен совпадать с вашим именем или ' +
+                  'другой персональной информацией или быть слишком' +
+                  'похожим на неё.</p> <ul><li>Ваш пароль должен содержать как минимум ' +
+                  '8 символов.</li><li>Ваш пароль не может быть одним из широко' +
+                  'распространённых паролей.</li><li>Ваш пароль не может состоять' +
+                  'только из цифр.</li></ul>'
+    )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'id': 'password_confirm', 'required': True}),
+        label='Подтверждение пароля')
+
+    def clean(self):
+        cleaned_data = super(ChangePassword, self).clean()
+        if not cleaned_data['password'] == cleaned_data['password_confirm']:
+            raise forms.ValidationError('Пароли не совпадают. Повторите ввод паролей.')
+
+    def save(self, user):
+            user.set_password(self.cleaned_data['password'])
+            user.save()
+
+
+class AccountChangeForm(UserChangeForm):
+    def add_group(self, instance, groups):
+        try:
+            if groups:
+                instance.groups.clear()
+                for g in groups:
+                    instance.groups.add(g)
+        except Exception as e:
+            self.add_error(None, str(e))
+
+    def save(self, commit=True, *args, **kwargs):
+        instance = super(AccountChangeForm, self).save(commit=False)
+        if commit:
+            try:
+                instance.save()
+            except Exception as e:
+                self.add_error(None, str(e))
+            self.add_group(instance, self.cleaned_data['groups'])
+            LogEntry.objects.log_action(
+                user_id=kwargs.get('user_id'),
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=instance.pk,
+                object_repr=repr(instance),
+                action_flag=CHANGE)
+            return instance
+        else:
+            return instance
+
+
+class AccountCreationForm(UserCreationForm):
+    def account_create(self, *args, **kwargs):
+        if self.cleaned_data['password1'] == self.cleaned_data['password2']:
+            try:
+                account = User.objects.create_user(
+                    username=self.cleaned_data['username'],
+                    password=self.cleaned_data['password1']
+                )
+                LogEntry.objects.log_action(
+                    user_id=kwargs.get('user_id'),
+                    content_type_id=ContentType.objects.get_for_model(User).pk,
+                    object_id=account.pk,
+                    object_repr=repr(account),
+                    action_flag=ADDITION
+                )
+            except Exception as e:
+                self.add_error(None, str(e))
+                account = None
+        else:
+            self.add_error('password1', 'Пароли не совпадают')
+        return account
+
+
+class GroupCreateForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ('name', 'permissions')
+
+    def add_permissions(self, instance):
+        permissions = self.cleaned_data['permissions']
+        instance.permissions.clear()
+        try:
+            for p in permissions:
+                instance.permissions.add(p)
+        except Exception as e:
+            self.add_error(str(e))
+
+    def save(self, commit=True, *args, **kwargs):
+        instance = super(GroupCreateForm, self).save(commit=False)
+        if instance.pk:
+            flag = CHANGE
+        else:
+            flag = ADDITION
+        if commit:
+            try:
+                instance.save()
+                self.add_permissions(instance)
+            except Exception as e:
+                self.add_error(None, str(e))
+            LogEntry.objects.log_action(
+                user_id=kwargs.get('user_id'),
+                content_type_id=ContentType.objects.get_for_model(Group).pk,
+                object_id=instance.pk,
+                object_repr=repr(instance),
+                action_flag=flag)
+            return instance
+        else:
+            return instance

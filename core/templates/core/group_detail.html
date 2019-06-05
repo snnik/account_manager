@@ -27,14 +27,12 @@
                             {{ field.help_text }}
                         </div>
                         {% endfor %}
-                        <a class="btn btn-warning float-left" href="{% url 'user_list' %}">
+                        <a class="btn btn-warning float-left" href="{% url 'group_list' %}">
                             Назад
                         </a>
-                        {% if account_id %}
-                        <a class="btn btn-danger float-right" href="{% url 'user_delete' account_id %}">
+                        <a class="btn btn-danger float-right" href="#">
                             Удалить
                         </a>
-                        {% endif %}
                         <button class="btn btn-warning float-right">Сохранить</button>
                     </form>
                 </div>

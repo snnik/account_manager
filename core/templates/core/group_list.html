@@ -5,17 +5,10 @@
         <td>{{ group.pk }}</td>
         <td>{{ group }}</td>
         <td>
-            {% if group.status %}
-                Активный
-            {% else %}
-                Неактивый
-            {% endif %}
-        </td>
-        <td>
             <a class="btn btn-warning float-right" href="#">
                 Удалить
             </a>
-            <a class="btn btn-warning float-right" href="#">
+            <a class="btn btn-warning float-right" href="{% url 'group_detail' group.pk %}">
                 Редактировать
             </a>
         </td>

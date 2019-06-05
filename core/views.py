@@ -47,39 +47,11 @@ class PackageList(ObjectsLists):
 class GroupList(ObjectsLists):
     model = Group
     template_name = 'core/group_list.html'
-    heads = ('id', 'Наименование', 'Статус',)
+    heads = ('id', 'Наименование', )
     view_title = 'Group'
     page_title = 'Groups'
     permission_required = ('auth.group_view',)
-
-
-@login_required(login_url=reverse_lazy('base_login'))
-@permission_required('auth.add_user')
-def create_user(request):
-    page_context = {'page_title': 'Создание пользователя'}
-    if request.method == 'POST':
-        user_form = CreateUserForm(request.POST)
-        try:
-            if user_form.is_valid():
-                if user_form.cleaned_data['password'] == user_form.cleaned_data['password1']:
-                    user = User.objects.create_user(username=user_form.cleaned_data['username'],
-                                                    password=user_form.cleaned_data['password'])
-                    LogEntry.objects.log_action(
-                        user_id=request.user.id,
-                        content_type_id=ContentType.objects.get_for_model(user).pk,
-                        object_id=user.pk,
-                        object_repr=repr(user),
-                        action_flag=ADDITION
-                    )
-                    # return redirect('user_update', user_id=user.pk)
-                else:
-                    user_form.add_error('password1', 'Пароли не совпадают')
-        except Exception as e:
-            user_form.add_error('non_field_errors'.upper(), str(e))
-    else:
-        user_form = CreateUserForm()
-    page_context['form'] = user_form
-    return render(request, 'core/account_detail.html', page_context)
+    create_uri = 'group_create'
 
 
 @login_required(login_url=reverse_lazy('base_login'))
@@ -90,29 +62,80 @@ def index(request):
     if not (user.is_superuser or user.is_staff):
         customer = user.customer
         page_context['customer'] = customer
-
     shortcuts = set()
-
     for service in services:
         permission_name = service._meta.app_label + '.' + service.fk_permission.codename
-
         if user.has_perm(permission_name):
             shortcuts.add(service)
-
     page_context['shortcuts'] = shortcuts
     return render(request, "core/dashboard.html", page_context)
 
 
 @login_required(login_url=reverse_lazy('base_login'))
+@permission_required('auth.add_user')
+def create_user(request):
+    page_context = {'page_title': 'Создание пользователя'}
+    if request.method == 'POST':
+        account_form = AccountCreationForm(request.POST)
+        if account_form.is_valid():
+            account = account_form.account_create(user_id=request.user.pk)
+            if not account_form.errors:
+                return redirect('user_update', user_id=account.pk)
+    else:
+        account_form = AccountCreationForm()
+    page_context['form'] = account_form
+    return render(request, 'core/account_detail.html', page_context)
+
+
+@login_required(login_url=reverse_lazy('base_login'))
 @permission_required(('auth.change_user', 'auth.view_user'))
 def update_user(request, user_id):
-    pass
+    page_context = {}
+    account = get_object_or_404(User, pk=user_id)
+    if request.method == 'POST':
+        account_form = AccountChangeForm(request.POST, instance=account)
+        if account_form.is_valid():
+            account_form.save(user_id=request.user.pk)
+    else:
+        account_form = AccountChangeForm(instance=account)
+    page_context['page_title'] = 'Изменение пользователя: ' + str(account) + ' ID: ' + str(account.pk)
+    page_context['account_id'] = user_id
+    page_context['form'] = account_form
+    return render(request, 'core/account_detail.html', page_context)
 
 
 @login_required(login_url=reverse_lazy('base_login'))
 @permission_required('auth.delete_user')
 def delete_user(request, user_id):
-    pass
+    # Создать форму для проверки связанных объектов, и подтверждения их удаления
+    account = get_object_or_404(User, pk=user_id)
+    if account:
+        account.delete()
+    return redirect('user_list')
+
+
+@login_required(login_url=reverse_lazy('base_login'))
+@permission_required('auth.add_group')
+def group_view(request, group_id=None):
+    page_context = {}
+    if request.method == 'POST':
+        if group_id:
+            group = get_object_or_404(Group, pk=group_id)
+            group_form = GroupCreateForm(request.POST, instance=group)
+        else:
+            group_form = GroupCreateForm(request.POST)
+        if group_form.is_valid:
+            group_form.save(user_id=request.user.pk)
+    else:
+        if group_id:
+            group = get_object_or_404(Group, pk=group_id)
+            group_form = GroupCreateForm(instance=group)
+            page_context['page_title'] = 'Редактирование группы'
+        else:
+            group_form = GroupCreateForm()
+            page_context['page_title'] = 'Создание группы'
+    page_context['form'] = group_form
+    return render(request, 'core/group_detail.html', page_context)
 
 
 @login_required(login_url=reverse_lazy('base_login'))
@@ -135,7 +158,6 @@ def create_service(request):
 def update_service(request, service_id):
     service = get_object_or_404(Service, pk=service_id)
     page_context = {'page_title': 'Изменение сервиса'}
-
     if request.method == 'POST':
         form = ServiceForm(request.POST, instance=service)
         if form.is_valid():
@@ -143,7 +165,6 @@ def update_service(request, service_id):
             service.save(username=request.user)
     else:
         form = ServiceForm(instance=service)
-
     page_context['form'] = form
     return render(request, 'core/service_form.html', page_context)
 
@@ -169,7 +190,6 @@ def list_package(request):
 @permission_required(('core.add_package', 'auth.add_group'))
 def create_package(request):
     page_context = {'page_title': 'Создание пакета услуг'}
-
     if request.method == 'POST':
         form = PackageForm(request.POST)
         f_group = GroupForm(request.POST)
@@ -180,19 +200,9 @@ def create_package(request):
     else:
         f_group = GroupForm()
         form = PackageForm()
-
     page_context['form'] = form
     page_context['group'] = f_group
     return render(request, 'core/package_form.html', page_context)
-
-
-@login_required()
-@permission_required(('core.delete_package', 'auth.delete_group'))
-def delete_package(request, sp_id):
-    package = get_object_or_404(Package, pk=sp_id)
-    group = package.group
-    group.delete()
-    return redirect('package_list')
 
 
 @login_required(login_url=reverse_lazy('base_login'))
@@ -200,7 +210,6 @@ def delete_package(request, sp_id):
 def update_package(request, sp_id):
     package = get_object_or_404(Package, pk=sp_id)
     page_context = {'page_title': 'Пакет услуг ' + str(package.description) + ' : ' + str(package.pk)}
-
     if request.method == 'POST':
         package_form = PackageForm(request.POST, instance=package)
         group_form = GroupForm(request.POST, instance=package.group)
@@ -213,10 +222,18 @@ def update_package(request, sp_id):
     else:
         package_form = PackageForm(instance=package)
         group_form = GroupForm(instance=package.group)
-
     page_context['form'] = package_form
     page_context['group'] = group_form
     return render(request, 'core/package_form.html', page_context)
+
+
+@login_required()
+@permission_required(('core.delete_package', 'auth.delete_group'))
+def delete_package(request, sp_id):
+    package = get_object_or_404(Package, pk=sp_id)
+    group = package.group
+    group.delete()
+    return redirect('package_list')
 
 
 @login_required(login_url=reverse_lazy('base_login'))
@@ -241,43 +258,20 @@ def create_account(request):
     page_context = {'page_title': 'Создание аккаунта'}
     password = None
     login = None
-
     if request.method == 'POST':
         customer_form = CustomerForm(request.POST)
         account_form = AccountForm(request.POST)
         if customer_form.is_valid() and account_form.is_valid():
             customer = customer_form.save(commit=False)
-            login, password = customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
+            customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
     else:
         customer_form = CustomerForm()
         account_form = AccountForm()
-
     page_context['customer_form'] = customer_form
     page_context['account_form'] = account_form
     page_context['password'] = password
     page_context['login'] = login
-
     return render(request, 'core/customer_detail.html', page_context)
-
-
-# @login_required(login_url='base_login')
-# def update_account(request, customer_id):
-#     context = {'page_title': 'изменение аккаунта'}
-#     customer = get_object_or_404(Customer, pk=customer_id, customer__is_active=True)
-#     user = customer.customer
-#
-#     if request.method == 'POST':
-#         form = CustomerForm(request.POST, instance=customer)
-#         account_form = AccountForm(request.POST, instance=user)
-#         if form.is_valid() and account_form.is_valid():
-#             customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
-#     else:
-#         form = CustomerForm(instance=customer)
-#         account_form = AccountForm(instance=user)
-#
-#     context['form'] = form
-#     context['account_form'] = account_form
-#     return render(request, 'core/customer_detail.html', context)
 
 
 @login_required(login_url=reverse_lazy('base_login'))
@@ -286,7 +280,6 @@ def account_detail(request, customer_id, **kwargs):
     context = {'page_title': 'изменение аккаунта'}
     account = get_object_or_404(Customer, id=customer_id)
     user = account.customer
-    lst = user.groups
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=account)
         account_form = AccountForm(request.POST, instance=user)
@@ -295,7 +288,7 @@ def account_detail(request, customer_id, **kwargs):
     else:
         form = CustomerForm(instance=account)
         account_form = AccountForm(instance=user)
-
+       # account_form.fields['groups'].queryset =
     context['customer_form'] = form
     context['account_form'] = account_form
     return render(request, 'core/customer_detail.html', context)
@@ -314,21 +307,34 @@ def login(request):
             password = request.POST.get('password', '')
             user = auth.authenticate(username=username, password=password)
             if user and not user.last_login:
-                return HttpResponseRedirect(reverse('change_pass'))
+                change_password = True
+            else:
+                change_password = False
             if user is not None:
                 auth.login(request, user)
                 request.session.set_expiry(0)
-                return HttpResponseRedirect('/')
+                if change_password:
+                    return redirect(reverse('change_pass'))
+                else:
+                    return HttpResponseRedirect('/')
             else:
                 request.session['incorrect'] = incorrect + 1
-
                 login_error = 'Сожалеем, вы неправильно ввели логин или пароль. Осталось попыток:' + str(5-incorrect)
                 context = {'login_error': login_error}
     return render(request, 'core/base_login.html', context)
 
 
-def password_change(reguest):
-    return HttpResponse('Pass change')
+def password_change(request):
+    context = {}
+    if request.method == 'POST':
+        form = ChangePassword(request.POST)
+        if form.is_valid():
+            form.save(request.user)
+            return HttpResponseRedirect('/')
+    else:
+        form = ChangePassword()
+    context['form'] = form
+    return render(request, 'core/password_change.html', context)
 
 
 def logout(request):

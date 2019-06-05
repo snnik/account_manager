@@ -5,6 +5,7 @@ from django.core.validators import RegexValidator, EmailValidator
 from django.contrib.contenttypes.models import ContentType
 from .utils import PasswordGenerator, LoginGenerator
 from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
+from django.core.mail import send_mail
 
 
 # Расширение модели прав, связка для сервиса
@@ -45,15 +46,11 @@ class Service(models.Model):
                 content_type_id=content_type.pk,
                 object_id=self.pk,
                 object_repr=repr(self),
-                action_flag=action
+                action_flag=action,
+                change_message=self
             )
         except Exception as e:
-            LogEntry.objects.log_action(
-                user_id=user.id,
-                content_type_id=content_type.pk,
-                object_id=self.pk,
-                object_repr=repr(e),
-                action_flag=action)
+            print(str(e))
 
     def not_active(self, **kwargs):
         self.status = False
@@ -65,23 +62,18 @@ class Service(models.Model):
 
     def delete(self, *args, **kwargs):
         user = kwargs.get('username')
-        action = DELETION
         try:
             super(Service, self).delete(using=None, keep_parents=False)
             LogEntry.objects.log_action(
-                user_id=user,
-                content_type_id=ContentType.objects.get_for_model(Service),
+                user_id=user.id,
+                content_type_id=ContentType.objects.get_for_model(Service).pk,
                 object_id=self.pk,
                 object_repr=repr(self),
-                action_flag=action
+                action_flag=DELETION,
+                change_message=self
             )
         except Exception as e:
-            LogEntry.objects.log_action(
-                user_id=user.id,
-                content_type_id=ContentType.objects.get_for_model(Service),
-                object_id=self.pk,
-                object_repr=repr(e),
-                action_flag=action)
+            print(str(e))
 
     def __str__(self):
         return str(self.description)
@@ -109,22 +101,17 @@ class Package(models.Model):
                 action = CHANGE
                 group.permissions.clear()
         except Exception as e:
-            LogEntry.objects.log_action(
-                user_id=user,
-                content_type_id=ContentType.objects.get_for_model(Service),
-                object_id=self.pk,
-                object_repr=repr(e),
-                action_flag=action
-            )
+            print(str(e))
         if permissions:
             for permission in permissions:
                 group.permissions.add(permission)
         LogEntry.objects.log_action(
-            user_id=user,
-            content_type_id=ContentType.objects.get_for_model(Service),
+            user_id=user.id,
+            content_type_id=ContentType.objects.get_for_model(Service).pk,
             object_id=self.pk,
             object_repr=repr(self),
-            action_flag=action
+            action_flag=action,
+            change_message=self
         )
         try:
             if self.pk:
@@ -135,20 +122,7 @@ class Package(models.Model):
             kwargs.clear()
             super(Package, self).save(*args, **kwargs)
         except Exception as e:
-            LogEntry.objects.log_action(
-                user_id=user,
-                content_type_id=ContentType.objects.get_for_model(Service),
-                object_id=self.pk,
-                object_repr=repr(e),
-                action_flag=action
-            )
-        LogEntry.objects.log_action(
-            user_id=user,
-            content_type_id=ContentType.objects.get_for_model(Service),
-            object_id=self.pk,
-            object_repr=repr(self),
-            action_flag=action
-        )
+            print(str(e))
 
     def __str__(self):
         return self.description
@@ -177,40 +151,43 @@ class Customer(models.Model):
     def __str__(self):
         return self.description
 
-    def save(self, *args, **kwargs):
+    def create_user(self, **kwargs):
         login = None
         password = None
         user = kwargs.get('username')
-        groups = kwargs.get('groups')
         password = kwargs.get('password')
+        login = LoginGenerator().create(self.description)
+        password = PasswordGenerator().generate()
+        try:
+            account = User.objects.create_user(username=login, password=password)
+        except Exception as e:
+            postfix = str(time.time()).split('.')[1]
+            login = LoginGenerator().create(self.description, postfix)
+            account = User.objects.create_user(username=login, password=password)
+        send_mail('Пароль',
+                  'Учетные данные' + str(login) + ' ' + str(password),
+                  'snnik1@gmail.com',
+                  [self.email_address]
+                  )
+        LogEntry.objects.log_action(
+            user_id=user.pk,
+            content_type_id=ContentType.objects.get_for_model(User).pk,
+            object_id=account.pk,
+            object_repr=repr(account),
+            action_flag=ADDITION,
+            change_message=account
+        )
+        return account
 
+    def save(self, *args, **kwargs):
+        groups = kwargs.get('groups')
+        user = kwargs.get('username')
         if not self.pk:
-            action = ADDITION
-            login = LoginGenerator().create(self.description)
-            password = PasswordGenerator().generate()
-            try:
-                account = User.objects.create_user(username=login, password=password)
-                LogEntry.objects.log_action(
-                    user_id=user,
-                    content_type_id=ContentType.objects.get_for_model(Customer),
-                    object_id=self.pk,
-                    object_repr=repr(account),
-                    action_flag=action
-                )
-            except Exception as e:
-                postfix = str(time.time()).split('.')[1]
-                login = LoginGenerator().create(self.description, postfix)
-                account = User.objects.create_user(username=login, password=password)
-                LogEntry.objects.log_action(
-                    user_id=user,
-                    content_type_id=ContentType.objects.get_for_model(Customer),
-                    object_id=self.pk,
-                    object_repr=repr(account),
-                    action_flag=action
-                )
+            flag = ADDITION
+            account = self.create_user(**kwargs)
             self.customer = account
         else:
-            action = CHANGE
+            flag = CHANGE
             account = self.customer
             account.groups.clear()
         for group in groups:
@@ -219,21 +196,15 @@ class Customer(models.Model):
         try:
             super(Customer, self).save(*args, **kwargs)
             LogEntry.objects.log_action(
-                user_id=user,
-                content_type_id=ContentType.objects.get_for_model(Customer),
+                user_id=user.pk,
+                content_type_id=ContentType.objects.get_for_model(Customer).pk,
                 object_id=self.pk,
                 object_repr=repr(self),
-                action_flag=action
+                action_flag=flag,
+                change_message=self
             )
         except Exception as e:
-            LogEntry.objects.log_action(
-                user_id=user,
-                content_type_id=ContentType.objects.get_for_model(Customer),
-                object_id=self.pk,
-                object_repr=repr(e),
-                action_flag=action
-            )
-        return login, password
+            print(str(e))
 
     def activate(self):
         user = self.customer
@@ -283,9 +254,3 @@ class Protocol(models.Model):
 
     def __str__(self):
         return self.action
-
-
-# class Account(User):
-#     def save(self, *args, **kwargs):
-#
-#         super(Account, self).save(*args, **kwargs)

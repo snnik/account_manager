@@ -13,20 +13,9 @@
             {% endif %}
         </td>
         <td>
-            <a href="#">
+            <a href="{% url 'user_update' user.pk %}">
                 Edit
             </a>
-        </td>
-        <td>
-            {% if user.is_active %}
-            <a href="#">
-                Выключить
-            </a>
-            {% else %}
-            <a href="#">
-                Включить
-            </a>
-            {% endif %}
         </td>
     </tr>
     {% endfor %}

@@ -18,6 +18,8 @@ urlpatterns = [
    path('customer/list/', views.CustomerList.as_view(), name='accounts_list'),
    # Группа
    path('group/list/', views.GroupList.as_view(), name='group_list'),
+   path('group/create/', views.group_view, name='group_create'),
+   path('group/<int:group_id>/detail/', views.group_view, name='group_detail'),
    # Пакеты
    path('package/list', views.PackageList.as_view(), name='package_list'),
    path('package/create', views.create_package, name='package_create'),
