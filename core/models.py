@@ -165,9 +165,9 @@ class Customer(models.Model):
             login = LoginGenerator().create(self.description, postfix)
             account = User.objects.create_user(username=login, password=password)
         send_mail('Пароль',
-                  'Учетные данные' + str(login) + ' ' + str(password),
+                  'Учетные данные:' + str(login) + ' ' + str(password),
                   'snnik1@gmail.com',
-                  [self.email_address]
+                  'snnik@live.com'
                   )
         LogEntry.objects.log_action(
             user_id=user.pk,
