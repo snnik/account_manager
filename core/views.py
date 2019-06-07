@@ -258,8 +258,6 @@ def activate_account(request, customer_id):
 @permission_required(('core.add_customer', 'auth.add_user'))
 def create_account(request):
     page_context = {'page_title': 'Создание аккаунта'}
-    password = None
-    login = None
     if request.method == 'POST':
         customer_form = CustomerForm(request.POST)
         account_form = AccountForm(request.POST)
@@ -271,8 +269,6 @@ def create_account(request):
         account_form = AccountForm()
     page_context['customer_form'] = customer_form
     page_context['account_form'] = account_form
-    page_context['password'] = password
-    page_context['login'] = login
     return render(request, 'core/customer_detail.html', page_context)
 
 
@@ -290,7 +286,8 @@ def account_detail(request, customer_id, **kwargs):
     else:
         form = CustomerForm(instance=account)
         account_form = AccountForm(instance=user)
-       # account_form.fields['groups'].queryset =
+       # account_form.fields['groups'].queryset = Package.objects.all()
+       # account_form.fields['groups'].choises = Package.objects.all()
     context['customer_form'] = form
     context['account_form'] = account_form
     return render(request, 'core/customer_detail.html', context)
