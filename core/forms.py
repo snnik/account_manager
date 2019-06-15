@@ -88,7 +88,7 @@ class ServiceForm(forms.ModelForm):
         widgets = {
             'description': forms.TextInput(attrs={'class': 'form-control'}),
             'url': forms.TextInput(attrs={'class': 'form-control'}),
-            'shortcut_path': forms.TextInput(attrs={'class': 'form-control'}),
+            'shortcut_path': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.CheckboxInput(),
             'is_service': forms.CheckboxInput(),

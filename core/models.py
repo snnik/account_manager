@@ -15,7 +15,7 @@ class Service(models.Model):
         on_delete=models.CASCADE, blank=True)
     description = models.CharField(max_length=50, verbose_name='Наименование')
     url = models.TextField(unique=True, blank=False, verbose_name='URI ресурса')  # !!!!
-    shortcut_path = models.TextField(verbose_name='Путь к ярлыку')
+    shortcut_path = models.ImageField(verbose_name='Путь к ярлыку')
     is_service = models.BooleanField(default=True, verbose_name='Услуга/Служебный')
     status = models.BooleanField(default=True, verbose_name='Статус')
     price = models.FloatField(blank=True, verbose_name='Цена')
@@ -27,12 +27,13 @@ class Service(models.Model):
         if not self.is_service:
             self.price = 0
         try:
+            content_type = ContentType.objects.get_for_model(Service)
             if self.pk:
                 action = CHANGE
+
             else:
                 action = ADDITION
                 translit_str = LoginGenerator()
-                content_type = ContentType.objects.get_for_model(Service)
                 permission, flag = Permission.objects.get_or_create(
                     codename=translit_str.translit(self.description),
                     name=self.description,

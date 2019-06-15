@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
    # path('account/<int:customer_id>/update/', views.update_account, name='account_update'),
@@ -35,4 +37,4 @@ urlpatterns = [
    path('logout/', views.logout, name='base_logout'),
    path('pass_change/', views.password_change, name='change_pass'),
    path('', views.index, name='dashboard')
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

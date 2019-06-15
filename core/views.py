@@ -145,9 +145,10 @@ def group_view(request, group_id=None):
 def create_service(request):
     page_context = {'page_title': 'Создание сервиса'}
     if request.method == 'POST':
-        form = ServiceForm(request.POST)
+        form = ServiceForm(request.POST, request.FILES)
         if form.is_valid():
             service = form.save(commit=False)
+            service.shortcut_path = form.cleaned_data['shortcut_path']
             service.save(username=request.user)
     else:
         form = ServiceForm()
@@ -161,9 +162,10 @@ def update_service(request, service_id):
     service = get_object_or_404(Service, pk=service_id)
     page_context = {'page_title': 'Изменение сервиса'}
     if request.method == 'POST':
-        form = ServiceForm(request.POST, instance=service)
+        form = ServiceForm(request.POST, request.FILES, instance=service)
         if form.is_valid():
             service = form.save(commit=False)
+            service.shortcut_path = form.cleaned_data['shortcut_path']
             service.save(username=request.user)
     else:
         form = ServiceForm(instance=service)
