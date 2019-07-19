@@ -1,16 +1,25 @@
 from django import forms
-from .models import *
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.db import Error
+from .models import Customer, Service, Package
 from django.contrib.auth import password_validation
+from django.contrib.auth.models import User, Permission, Group
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm
+from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
+from django.contrib.contenttypes.models import ContentType
+from django.core.mail import send_mail
 
 
 class CustomerForm(forms.ModelForm):
+    user = None
+    groups = None
+    form_error = []
+
     class Meta:
         model = Customer
-        fields = ('description', 'INN', 'KPP', 'OGRN', 'legal_address', 'postal_address',
-                  'phone_number', 'email_address', )
+        fields = ('name', 'INN', 'KPP', 'OGRN', 'legal_address', 'postal_address',
+                  'phone_number', 'email_address',)
         widgets = {
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
             'INN': forms.TextInput(attrs={'class': 'form-control'}),
             'KPP': forms.TextInput(attrs={'class': 'form-control'}),
             'OGRN': forms.TextInput(attrs={'class': 'form-control'}),
@@ -20,13 +29,99 @@ class CustomerForm(forms.ModelForm):
             'email_address': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+    def changed_groups(self, o):
+        o.groups.clear()
+        try:
+            for group in self.groups:
+                o.groups.add(group)
+            LogEntry.objects.log_action(
+                user_id=self.user.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=o.pk,
+                object_repr=repr(o),
+                action_flag=CHANGE,
+                change_message=o
+            )
+        except Error as e:
+            self.form_error.append(str(e))
 
-class AccountForm(forms.ModelForm):
+    def create_customer(self):
+        instance = super(Customer, self).save(commit=False)
+        try:
+            account = instance.create_user()
+            LogEntry.objects.log_action(
+                user_id=self.user.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=account.pk,
+                object_repr=repr(account),
+                action_flag=ADDITION,
+                change_message=account
+            )
+        except Error as e:
+            self.form_error.append(str(e))
+        send_mail('Пароль',
+                  'Учетные данные:' +
+                  str(instance.account_login) +
+                  ' ' +
+                  str(instance.password),
+                  'snnik1@gmail.com',
+                  'snnik@live.com'
+                  )
+        self.changed_groups(account)
+        try:
+            instance.save()
+            LogEntry.objects.log_action(
+                user_id=self.user.pk,
+                content_type_id=ContentType.objects.get_for_model(Customer).pk,
+                object_id=instance.pk,
+                object_repr=repr(instance),
+                action_flag=ADDITION,
+                change_message=instance
+            )
+        except Error as e:
+            self.form_error.append(str(e))
+        if instance.model_error:
+            self.form_error.append(instance.model_error)
+        return instance.pk
+
+    def update_customer(self):
+        instance = super(Customer, self).save(commit=False)
+        self.changed_groups(instance.account)
+        try:
+            instance.save()
+            LogEntry.objects.log_action(
+                user_id=self.user.pk,
+                content_type_id=ContentType.objects.get_for_model(Customer).pk,
+                object_id=instance.pk,
+                object_repr=repr(instance),
+                action_flag=CHANGE,
+                change_message=instance
+            )
+        except Error as e:
+            self.form_error.append(str(e))
+        return instance.pk
+
+    def delete_customer(self):
+        instance = super(Customer, self).save(commit=False)
+        try:
+            instance.delete_entity()
+            LogEntry.objects.log_action(
+                user_id=self.user.pk,
+                content_type_id=ContentType.objects.get_for_model(Customer).pk,
+                object_id=instance.pk,
+                object_repr=repr(instance),
+                action_flag=CHANGE,
+                change_message=instance)
+        except Error as e:
+            self.form_error.append(str(e))
+
+
+class GroupSelectForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ('groups', )
+        fields = ('groups',)
         widgets = {
-            'groups': forms.CheckboxSelectMultiple(),
+            'groups': forms.CheckboxSelectMultiple()
         }
 
 
@@ -54,24 +149,11 @@ class CreateUserForm(forms.ModelForm):
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'password': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
-
-    # password = forms.CharField(
-    #     widget=forms.PasswordInput(attrs={'class': 'form-control'}),
-    #     help_text='Ваш пароль не должен совпадать с вашим именем или' +
-    #               'другой персональной информацией или быть слишком' +
-    #               'похожим на неё.\n Ваш пароль должен содержать как минимум' +
-    #               '8 символов.\n Ваш пароль не может быть одним из широко' +
-    #               'распространённых паролей.\n Ваш пароль не может состоять' +
-    #               'только из цифр.',
-    #     label='Пароль:',
-    #     validators=password_validation.get_default_password_validators()
-    # )
-
     password1 = forms.CharField(widget=forms.PasswordInput(
         attrs={'class': 'form-control'}),
         label='Подтверждение пароля',
         help_text='Подтвердите пароль',
-        )
+    )
 
     # Перегрузить метод save
     def clean(self):
@@ -82,12 +164,15 @@ class CreateUserForm(forms.ModelForm):
 
 
 class ServiceForm(forms.ModelForm):
+    user = None
+    form_error = []
+
     class Meta:
         model = Service
-        fields = ('description', 'url', 'shortcut_path', 'price', 'status', 'is_service')
+        fields = ('name', 'url_path', 'shortcut_path', 'price', 'status', 'is_service')
         widgets = {
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'url': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'url_path': forms.TextInput(attrs={'class': 'form-control'}),
             'shortcut_path': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.CheckboxInput(),
@@ -96,49 +181,37 @@ class ServiceForm(forms.ModelForm):
 
 
 class PackageForm(forms.ModelForm):
+    description = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+
     class Meta:
         model = Package
-        fields = ('description', 'status', 'price')
+        fields = ('status', 'price')
         widgets = {
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.CheckboxInput(),
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
 
 class GroupForm(forms.ModelForm):
-
     class Meta:
         model = Group
-        fields = ('permissions',)
+        fields = ('name', 'permissions',)
         widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
             'permissions': forms.CheckboxSelectMultiple()
         }
 
 
-class ChangePassword(forms.Form):
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'id': 'password', 'required': True}),
-        label='Пароль',
-        help_text='<p>Ваш пароль не должен совпадать с вашим именем или ' +
-                  'другой персональной информацией или быть слишком' +
-                  'похожим на неё.</p> <ul><li>Ваш пароль должен содержать как минимум ' +
-                  '8 символов.</li><li>Ваш пароль не может быть одним из широко' +
-                  'распространённых паролей.</li><li>Ваш пароль не может состоять' +
-                  'только из цифр.</li></ul>'
-    )
-    password_confirm = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'id': 'password_confirm', 'required': True}),
-        label='Подтверждение пароля')
-
-    def clean(self):
-        cleaned_data = super(ChangePassword, self).clean()
-        if not cleaned_data['password'] == cleaned_data['password_confirm']:
-            raise forms.ValidationError('Пароли не совпадают. Повторите ввод паролей.')
-
+class ChangePasswordForm(PasswordChangeForm):
     def save(self, user):
-            user.set_password(self.cleaned_data['password'])
-            user.save()
+        user.set_password(self.cleaned_data['password'])
+        user.save()
+        LogEntry.objects.log_action(
+            user_id=user.pk,
+            content_type_id=ContentType.objects.get_for_model(User).pk,
+            object_id=user.pk,
+            object_repr=repr(self),
+            action_flag=CHANGE)
 
 
 class AccountChangeForm(UserChangeForm):
@@ -228,3 +301,15 @@ class GroupCreateForm(forms.ModelForm):
             return instance
         else:
             return instance
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email', )
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+

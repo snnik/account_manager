@@ -50,12 +50,12 @@
             {% for shortcut in shortcuts %}
             <div class="col col-sm-3 text-center">
               {% if not shortcut.is_service %}
-              <a href="{% url shortcut.url %}">
+              <a href="{% url shortcut.url_path %}">
               {% else %}
-              <a href="{{ shortcut.url }}">
+              <a href="{{ shortcut.url_path }}">
               {% endif %}
-                <img src="{{ shortcut.shortcut_path.url }}">
-                <p>{{ shortcut.description }}</p>
+                <img src="{{ shortcut.shortcut_path.url }}" width="96px" height="96px">
+                <p>{{ shortcut.name }}</p>
               </a>
             </div>
             {% endfor %}

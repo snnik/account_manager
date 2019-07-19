@@ -1,34 +1,12 @@
 {% extends 'core/list.html' %}
 {% block list %}
     {% for customer in object_list %}
-    <tr>
-        <td>{{ customer.customer.pk }}</td>
-        <td>{{ customer.customer.username }}</td>
-        <td>{{ customer.description }}</td>
-        <td>{{ customer.customer.last_login }}</td>
-        <td>
-            {% if customer.customer.is_active %}
-                Активный
-            {% else %}
-                Неактивый
-            {% endif %}
-        </td>
-        <td>
-            <a href="{% url 'account_detail' customer.pk %}">
-                Edit
-            </a>
-        </td>
-        <td>
-            {% if customer.customer.is_active %}
-            <a href="{% url 'account_deactivate' customer.pk %}">
-                Выключить
-            </a>
-            {% else %}
-            <a href="{% url 'account_activate' customer.pk %}">
-                Включить
-            </a>
-            {% endif %}
-        </td>
+    <tr {% if not customer.account.is_active %}class="table-danger"{% endif %}>
+        <td hidden = "true">{% url 'account_detail' customer.pk %}</td>
+        <td>{{ customer.account.pk }}</td>
+        <td>{{ customer.account.username }}</td>
+        <td>{{ customer.name }}</td>
+        <td>{{ customer.account.last_login }}</td>
     </tr>
     {% endfor %}
 {% endblock list %}

@@ -1,0 +1,108 @@
+{% extends "core/index.html" %}
+
+{% block content %}
+<div class="container my-3">
+    <div class="card">
+        <div class="card-header text-center">
+            Featured
+            <button type="button" class="close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="card-body">
+            <h6 class="card-title text-center">Данные о пользователе</h6>
+            <div class="row">
+                <div class="col-sm-6 border my-3">
+                    <table class="table table-sm">
+                        <tbody>
+                        <tr>
+                            <th>ID:</th>
+                            <th>{{ profile.pk }}</th>
+                        </tr>
+                        <tr>
+                            <th>Username:</th>
+                            <th>{{ profile.username }}</th>
+                        </tr>
+                        <tr>
+                            <th>Последний вход:</th>
+                            <th>{{ profile.last_login }}</th>
+                        </tr>
+                        <tr>
+                            <th>Роль:</th>
+                            <th>
+                                {% if profile.is_superuser %}
+                                Администратор
+                                {% elif profile.is_staff %}
+                                Менеджер
+                                {% endif %}
+                            </th>
+                        </tr>
+                        <tr>
+                            <th>Группы:</th>
+                            <th>
+                                <ul>
+                                    {% for g in groups %}
+                                    <li>{{ g.package.description }}</li>
+                                    {% endfor %}
+                                </ul>
+
+                            </th>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-sm-6">
+                    <form action=".">{% csrf_token %}
+                        <div class="form-row">
+                            <div class="form-group col">
+                                {{ form.email.label_tag }}
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {{ forms.email.errors }}
+                                </div>
+                                {% endif %}
+                                {{ form.email.help_text }}
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                {{ form.first_name.label_tag }}
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {{ form.first_name.errors }}
+                                </div>
+                                {% endif %}
+                                {{ form.first_name.help_text }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                {{ form.last_name.label_tag }}
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {{ form.last_name.errors }}
+                                </div>
+                                {% endif %}
+                                {{ form.last_name.help_text }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <a href="{% url 'change_pass' %}" data-toggle="tooltip" title="Нажмите для сброса пароля!"
+                               class="btn btn-primary mx-1" role="button">Сброс пароля</a>
+                            <div class="tooltip bs-tooltip-top" role="tooltip">
+                                <div class="arrow"></div>
+                                <div class="tooltip-inner">
+                                    Нажмите для сброса пароля!
+                                </div>
+                            </div>
+                    </form>
+                </div>
+            </div>
+            <div class="row">
+                <a href="#" class="btn btn-primary mx-1" role="button">Переход</a>
+                <a href="#" class="btn btn-primary mx-1" role="button">Переход</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content%}

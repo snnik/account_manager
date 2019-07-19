@@ -1,25 +1,38 @@
 {% extends "core/index.html" %}
 
 {% block content %}
+{% load staticfiles %}
 <div class="container my-3">
     <div class="row">
         <div class="col overflow-auto">
             <div class="card shadow">
                 <div class="card-header">
-                    <p><h5  class="text-center">{{ page_title }}</h5></p>
-                    <a type = "button" class="btn btn-secondary float-left" href="/">Назад</a>
-                    <a type="button" class="btn btn-secondary float-right" href="{% url create_uri %}">
-                        Добавить
-                    </a>
+                    <div class="row">
+                        <div class="col-1">
+                            <a href="/">
+                                <img src="{% static 'image/back.png' %}">
+                            </a>
+                        </div>
+                        <div class="col card-title text-center">
+                            {{ page_title }}
+                        </div>
+                        <div class="col-1">
+                            <a href="{% url create_uri %}">
+                                <img src="{% static 'image/add.png' %}">
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                     <table class="table table-striped overflow-auto" onclick="idvalue()">
-                        {% include 'core/list_head.html' %}
-                        <tbody>
+                    <div class="row">
+                        <table class="table responce-table table-striped" onclick="idvalue()">
+                            {% include 'core/list_head.html' %}
+                            <tbody>
                             {% block list %}
                             {% endblock list %}
-                        </tbody>
-                     </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

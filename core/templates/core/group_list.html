@@ -1,17 +1,12 @@
 {% extends 'core/list.html' %}
 {% block list %}
     {% for group in group_list %}
-    <tr>
+    <tr {% if group.package.status %}class="table-success"
+        {% elif group.package %} class="table-warning"
+        {% endif %}>
+        <td hidden = "true">{% url 'group_detail' group.pk %}</td>
         <td>{{ group.pk }}</td>
         <td>{{ group }}</td>
-        <td>
-            <a class="btn btn-warning float-right" href="#">
-                Удалить
-            </a>
-            <a class="btn btn-warning float-right" href="{% url 'group_detail' group.pk %}">
-                Редактировать
-            </a>
-        </td>
     </tr>
     {% endfor %}
 {% endblock list%}

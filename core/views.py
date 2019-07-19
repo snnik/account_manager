@@ -5,48 +5,142 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.conf import settings
 from core.forms import *
-from core.mixins import ObjectsLists
-from .models import Customer, Service, Package, Protocol
+from core.mixins import ListViewMixin, CreateFormMixin, UpdateFormMixin
+from .models import Customer, Service, Package
+from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
 
 
-class CustomerList(ObjectsLists):
+def write_log(usr, obj, flag):
+    LogEntry.objects.log_action(
+        user_id=usr.pk,
+        content_type_id=ContentType.objects.get_for_model(obj).pk,
+        object_id=obj.pk,
+        object_repr=repr(obj),
+        action_flag=flag,
+        change_message=obj
+    )
+
+
+class CustomerList(ListViewMixin):
     model = Customer
     view_title = 'Клиенты'
     page_title = ''
-    heads = ('ID', 'Логин', 'Наименование', 'Последний логин', 'Статус',)
+    heads = ('ID', 'Логин', 'Наименование', 'Последний логин',)
     permission_required = ('core.view_customer', 'auth.view_user')
     create_uri = 'account_create'
 
 
-class AccountList(ObjectsLists):
+class AccountList(ListViewMixin):
     model = User
     template_name = 'core/account_list.html'
-    heads = ('ID', 'Логин', 'Имя пользователя', 'Статус',)
+    heads = ('ID', 'Логин', 'Имя пользователя',)
     view_title = 'Accounts'
     page_title = ''
     permission_required = ('auth.view_user',)
     create_uri = 'user_create'
 
 
-class ServiceList(ObjectsLists):
+# Services section
+
+class ServiceList(ListViewMixin):
     model = Service
-    heads = ('id', 'Наименование', 'Статус',)
+    heads = ('id', 'Наименование',)
     view_title = 'Service'
     page_title = 'Services'
     permission_required = ('core.view_service',)
     create_uri = 'service_create'
 
 
-class PackageList(ObjectsLists):
+class ServiceCreate(CreateFormMixin):
+    form_title = 'Create service'
+    page_title = 'service'
+    template_name = 'core/service_form.html'
+    permission_required = ('core.add_service', 'auth.add_permission')
+    form_class = ServiceForm
+
+    def form_valid(self, form):
+        service = form.save(commit=False)
+        service.shortcut_path = form.cleaned_data['shortcut_path']
+        try:
+            service.permission_create()
+            write_log(self.request.user, service.fk_permission, ADDITION)
+            service.set_service_price()
+            service.save()
+            self.object = service
+            write_log(self.request.user, service, ADDITION)
+        except Exception as e:
+            form.form_error.append(str(e))
+            return self.form_invalid(form)
+        return redirect(self.get_success_url())
+
+
+class ServiceUpdate(UpdateFormMixin):
+    form_title = 'Update service'
+    page_title = 'service'
+    template_name = 'core/service_form.html'
+    permission_required = ('core.change_service',)
+    form_class = ServiceForm
+    model = Service
+
+    def form_valid(self, form):
+        service = form.save(commit=False)
+        service.shortcut_path = form.cleaned_data['shortcut_path']
+        try:
+            service.set_service_price()
+            service.save()
+            self.object = service
+            write_log(self.request.user, service, CHANGE)
+        except Exception as e:
+            form.form_error.append(str(e))
+            return self.form_invalid(form)
+        return redirect(self.get_success_url())
+
+
+# Packages sections
+
+class PackageList(ListViewMixin):
     model = Package
-    heads = ('id', 'Наименование', 'Статус',)
+    heads = ('id', 'Наименование', )
     view_title = 'Package'
     page_title = 'Packages'
     permission_required = ('core.view_package',)
     create_uri = 'package_create'
 
 
-class GroupList(ObjectsLists):
+class PackageCreate(CreateFormMixin):
+    form_title = 'Package create'
+    page_title = 'Package'
+    template_name = 'core/package_form.html'
+    permission_required = ('core.add_package', 'auth.add_group', )
+    form_class = PackageForm
+
+    def get_context_data(self, **kwargs):
+        if 'group' not in kwargs:
+            kwargs['group'] = GroupForm()
+
+        return super().get_context_data(**kwargs)
+
+    def form_valid(self, form):
+        form_group = GroupForm(self.request.POST)
+        if not form_group.is_valid():
+            return self.form_invalid()
+
+        package = form.save(commit=False)
+        try:
+            package.set_group_fk(group_name=form.cleaned_data['description'])
+            package.set_permissions(permissions=form_group.cleaned_data['permissions'])
+            package.save()
+            self.object = package
+            write_log(self.request.user, package, ADDITION)
+        except Error as e:
+            return self.form_invalid()
+        return redirect(self.get_success_url())
+
+
+
+# Groups management sections. Admin privileges or auth.group_.... permissions required.
+
+class GroupList(ListViewMixin):
     model = Group
     template_name = 'core/group_list.html'
     heads = ('id', 'Наименование', )
@@ -54,6 +148,19 @@ class GroupList(ObjectsLists):
     page_title = 'Groups'
     permission_required = ('auth.group_view',)
     create_uri = 'group_create'
+
+
+@login_required(login_url=reverse_lazy('base_login'))
+def profile(request):
+    if request.user.is_staff:
+        p = get_object_or_404(User, pk=request.user.pk)
+        g = p.groups.all()
+        form = ProfileForm(instance=p)
+        template = 'core/profile.html'
+    else:
+        p = get_object_or_404(Customer, pk=request.user.customer.pk)
+        template = 'core/customer_profile.html'
+    return render(request, template, {'profile': p, 'groups': g, 'form': form})
 
 
 @login_required(login_url=reverse_lazy('base_login'))
@@ -167,6 +274,7 @@ def update_service(request, service_id):
             service = form.save(commit=False)
             service.shortcut_path = form.cleaned_data['shortcut_path']
             service.save(username=request.user)
+            return redirect('service_update', service_id=service.pk)
     else:
         form = ServiceForm(instance=service)
     page_context['form'] = form
@@ -258,40 +366,48 @@ def activate_account(request, customer_id):
 
 @login_required(login_url=reverse_lazy('base_login'))
 @permission_required(('core.add_customer', 'auth.add_user'))
-def create_account(request):
+def create_customer(request):
     page_context = {'page_title': 'Создание аккаунта'}
     if request.method == 'POST':
         customer_form = CustomerForm(request.POST)
-        account_form = AccountForm(request.POST)
-        if customer_form.is_valid() and account_form.is_valid():
-            customer = customer_form.save(commit=False)
-            customer.save(username=request.user, groups=account_form.cleaned_data['groups'])
+        group_form = GroupSelectForm(request.POST)
+        if customer_form.is_valid() and group_form.is_valid():
+            customer_form.user = request.user
+            customer_form.groups = group_form.cleaned_data['groups']
+            customer_id = customer_form.create_customer()
+            if not customer_form.form_error:
+                return redirect('account_detail', customer_id=customer_id)
     else:
         customer_form = CustomerForm()
-        account_form = AccountForm()
+        group_form = GroupSelectForm()
     page_context['customer_form'] = customer_form
-    page_context['account_form'] = account_form
+    page_context['account_form'] = group_form
+    page_context['form_error'] = customer_form.form_error
     return render(request, 'core/customer_detail.html', page_context)
 
 
 @login_required(login_url=reverse_lazy('base_login'))
 @permission_required(('core.change_customer', 'auth.change_user'))
-def account_detail(request, customer_id, **kwargs):
+def customer_update(request, customer_id):
     context = {'page_title': 'изменение аккаунта'}
-    account = get_object_or_404(Customer, id=customer_id)
-    user = account.customer
+    customer = get_object_or_404(Customer, id=customer_id)
+    account = customer.account
     if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=account)
-        account_form = AccountForm(request.POST, instance=user)
-        if form.is_valid() and account_form.is_valid():
-            account.save(username=request.user, groups=account_form.cleaned_data['groups'])
+        customer_form = CustomerForm(request.POST, instance=customer)
+        group_form = GroupSelectForm(request.POST, instance=account)
+        if customer_form.is_valid() and group_form.is_valid():
+            customer_form.user = request.user
+            customer_form.groups = group_form.cleaned_data['groups']
+            customer_id = customer_form.update_customer()
+            if not customer_form.form_error:
+                return redirect('account_detail', customer_id)
     else:
-        form = CustomerForm(instance=account)
-        account_form = AccountForm(instance=user)
-       # account_form.fields['groups'].queryset = Package.objects.all()
-       # account_form.fields['groups'].choises = Package.objects.all()
-    context['customer_form'] = form
-    context['account_form'] = account_form
+        customer_form = CustomerForm(instance=customer)
+        group_form = GroupSelectForm(instance=account)
+        group_form.fields['groups'].queryset = Group.objects.filter(package__isnull=False)
+    context['customer_form'] = customer_form
+    context['account_form'] = group_form
+    context['form_error'] = customer_form.form_error
     return render(request, 'core/customer_detail.html', context)
 
 
@@ -328,12 +444,12 @@ def login(request):
 def password_change(request):
     context = {}
     if request.method == 'POST':
-        form = ChangePassword(request.POST)
+        form = ChangePasswordForm(request.POST)
         if form.is_valid():
             form.save(request.user)
             return HttpResponseRedirect('/')
     else:
-        form = ChangePassword()
+        form = ChangePasswordForm()
     context['form'] = form
     return render(request, 'core/password_change.html', context)
 

@@ -102,3 +102,4 @@ class LoginGenerator:
         else:
             return -1
         return str(translit(string, language_code=self.language, reversed=True)).replace(' ', '_').lower()
+

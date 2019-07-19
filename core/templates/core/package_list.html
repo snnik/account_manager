@@ -2,24 +2,10 @@
 
 {% block list %}
     {% for package in package_list %}
-    <tr>
+    <tr {% if not package.status %}class="table-danger"{% endif %}>
+        <td hidden = "false">{% url 'package_update' package.pk %}</td>
         <td>{{ package.pk }}</td>
-        <td>{{ package.description }}</td>
-        <td>
-            {% if package.status %}
-                Активный
-            {% else %}
-                Неактивый
-            {% endif %}
-        </td>
-        <td>
-            <a class="btn btn-warning float-right" href="{% url 'package_delete' package.pk %}">
-                Удалить
-            </a>
-            <a class="btn btn-warning float-right" href="{% url 'package_update' package.pk %}">
-                Редактировать
-            </a>
-        </td>
+        <td>{{ package.group.name }}</td>
     </tr>
     {% endfor %}
 {% endblock list%}

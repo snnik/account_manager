@@ -1,6 +1,7 @@
 *vscode/*
 .idea/*
 amenv/*
+venv/*
 .env
 *.pyc
 *~
