@@ -11,9 +11,9 @@ urlpatterns = [
    path('account/<int:user_id>/delete', views.delete_user, name='user_delete'),
    # Клиенты
    path('customer/<int:customer_id>/detail/', views.customer_update, name='account_detail'),
-   # path('customer_tst/<int:pk>/detail/', views.CustomerCreate.as_view()),
+   path('customer/create/', views.CreateCustomer.as_view(), name='account_create'),
    # path('customer_tst/', views.CustomerCreate.as_view()),
-   path('customer/create/', views.create_customer, name='account_create'),
+   # path('customer/create/', views.create_customer, name='account_create'),
    path('customer/list/', views.CustomerList.as_view(), name='accounts_list'),
    # Группа
    path('group/list/', views.GroupList.as_view(), name='group_list'),
@@ -22,13 +22,13 @@ urlpatterns = [
    # Пакеты
    path('package/list', views.PackageList.as_view(), name='package_list'),
    path('package/create', views.PackageCreate.as_view(), name='package_create'),
-   path('package/<int:sp_id>/update/', views.update_package, name='package_update'),
-   path('package/<int:sp_id>/delete/', views.delete_package, name='package_delete'),
+   path('package/<int:pk>/update/', views.PackageUpdate.as_view(), name='package_update'),
+   path('package/<int:pk>/delete/', views.PackageDelete.as_view(), name='package_delete'),
    # Сервисы
    path('service/list/', views.ServiceList.as_view(), name='services_list'),
    path('service/create/', views.ServiceCreate.as_view(), name='service_create'),
    path('service/<int:pk>/update', views.ServiceUpdate.as_view(), name='service_update'),
-   path('service/<int:service_id>/delete', views.delete_service, name='service_delete'),
+   path('service/<int:pk>/delete', views.ServiceDelete.as_view(), name='service_delete'),
    # Авторизация
    path('base_login/', views.login, name='base_login'),
    path('logout/', views.logout, name='base_logout'),

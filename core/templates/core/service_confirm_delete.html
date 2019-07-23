@@ -1,0 +1,21 @@
+{% extends "core/index.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card overflow-auto  px-0 my-4 shadow">
+        <div class="card-header">
+            <h5 class="text-center">{{ page_title }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <form method="post">{% csrf_token %}
+                        <p>Are you sure you want to delete "{{ object }}"?</p>
+                        <input type="submit" value="Confirm">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content%}

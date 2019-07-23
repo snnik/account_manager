@@ -19,7 +19,10 @@
                         </div>
                         {% endfor %}
                         <a class="btn btn-warning float-left" href="{% url 'services_list' %}">Назад</a>
-                        <button class="btn btn-warning float-right">Сохранить</button>
+                        <button class="btn btn-success float-right">Сохранить</button>
+                        {% if pk %}
+                        <a class="btn btn-danger float-right mx-3" href="{% url 'service_delete' pk %}">Удалить</a>
+                        {% endif %}
                     </form>
                 </div>
                 </div>

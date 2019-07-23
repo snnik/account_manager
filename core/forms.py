@@ -6,13 +6,9 @@ from django.contrib.auth.models import User, Permission, Group
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm
 from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
 from django.contrib.contenttypes.models import ContentType
-from django.core.mail import send_mail
 
 
 class CustomerForm(forms.ModelForm):
-    user = None
-    groups = None
-    form_error = []
 
     class Meta:
         model = Customer
@@ -28,61 +24,6 @@ class CustomerForm(forms.ModelForm):
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'email_address': forms.TextInput(attrs={'class': 'form-control'}),
         }
-
-    def changed_groups(self, o):
-        o.groups.clear()
-        try:
-            for group in self.groups:
-                o.groups.add(group)
-            LogEntry.objects.log_action(
-                user_id=self.user.pk,
-                content_type_id=ContentType.objects.get_for_model(User).pk,
-                object_id=o.pk,
-                object_repr=repr(o),
-                action_flag=CHANGE,
-                change_message=o
-            )
-        except Error as e:
-            self.form_error.append(str(e))
-
-    def create_customer(self):
-        instance = super(Customer, self).save(commit=False)
-        try:
-            account = instance.create_user()
-            LogEntry.objects.log_action(
-                user_id=self.user.pk,
-                content_type_id=ContentType.objects.get_for_model(User).pk,
-                object_id=account.pk,
-                object_repr=repr(account),
-                action_flag=ADDITION,
-                change_message=account
-            )
-        except Error as e:
-            self.form_error.append(str(e))
-        send_mail('Пароль',
-                  'Учетные данные:' +
-                  str(instance.account_login) +
-                  ' ' +
-                  str(instance.password),
-                  'snnik1@gmail.com',
-                  'snnik@live.com'
-                  )
-        self.changed_groups(account)
-        try:
-            instance.save()
-            LogEntry.objects.log_action(
-                user_id=self.user.pk,
-                content_type_id=ContentType.objects.get_for_model(Customer).pk,
-                object_id=instance.pk,
-                object_repr=repr(instance),
-                action_flag=ADDITION,
-                change_message=instance
-            )
-        except Error as e:
-            self.form_error.append(str(e))
-        if instance.model_error:
-            self.form_error.append(instance.model_error)
-        return instance.pk
 
     def update_customer(self):
         instance = super(Customer, self).save(commit=False)
@@ -181,12 +122,12 @@ class ServiceForm(forms.ModelForm):
 
 
 class PackageForm(forms.ModelForm):
-    description = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Package
-        fields = ('status', 'price')
+        fields = ('description', 'status', 'price')
         widgets = {
+            'description': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.CheckboxInput(),
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
         }
@@ -200,6 +141,10 @@ class GroupForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'permissions': forms.CheckboxSelectMultiple()
         }
+
+
+class PackageFormset():
+    pass
 
 
 class ChangePasswordForm(PasswordChangeForm):

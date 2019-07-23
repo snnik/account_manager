@@ -5,6 +5,7 @@ from django.core.validators import RegexValidator, EmailValidator
 from django.contrib.contenttypes.models import ContentType
 from .utils import PasswordGenerator, LoginGenerator
 from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
+from django.urls import reverse
 
 
 def write_log(usr, obj, flag):
@@ -22,9 +23,6 @@ def write_log(usr, obj, flag):
 class Customer(models.Model):
     account_login = None
     account_password = None
-    model_error = None
-    user = None
-    groups = None
 
     phone_regex = RegexValidator(regex=r'^\+?1?\d{6,15}$',
                                  message="Телефонный номер должен быть иметь следующий формат: '+999999999'. "
@@ -47,6 +45,10 @@ class Customer(models.Model):
     def __str__(self):
         return self.name
 
+    def changed_group(self, groups=None):
+        self.account.groups.clear()
+        self.account.groups.set(groups)
+
     def create_user(self):
         self.account_login = LoginGenerator().create(self.name)
         self.account_password = PasswordGenerator().generate()
@@ -59,31 +61,15 @@ class Customer(models.Model):
             account = User.objects.create_user(username=self.account_login,
                                                password=self.account_password)
             self.model_error = str(e)
-        write_log(self.user, account, ADDITION)
-        return account
-
-    def save(self, *args, **kwargs):
-        if self.pk:
-            account = self.account
-            # account.groups.clear()
-            flag = CHANGE
-        else:
-            account = self.create_user()
-            self.account = account
-            flag = ADDITION
-        # groups = list(self.groups)
-        account.groups.set(self.groups)
-        write_log(self.user, account, CHANGE)
-        try:
-            super(Customer, self).save(*args, **kwargs)
-            write_log(self.user, self, flag)
-        except Error as e:
-            pass
+        self.account = account
 
     def delete_entity(self):
         account = self.account
         account.is_active = False
         account.save()
+
+    def get_absolute_url(self):
+        return reverse('account_detail', kwargs={'pk': str(self.pk)})
 
 
 # Расширение модели прав, связка для сервиса
@@ -103,7 +89,7 @@ class Service(models.Model):
 
     def permission_name_generator(self):
         t = LoginGenerator()
-        return str(self.pk) + '_service_' + str(t.translit(self.name))
+        return str(self.name) + '_service'
 
     def permission_create(self):
         permission, flag = Permission.objects.get_or_create(
@@ -113,24 +99,31 @@ class Service(models.Model):
         )
         self.fk_permission = permission
 
+    def save(self, *args, **kwargs):
+        self.set_service_price()
+        self.permission_create()
+        return super(Service, self).save()
+
     def set_service_price(self):
         if self.is_service:
             self.price = 0
 
     def delete(self, *args, **kwargs):
-        pass
+        permission = self.fk_permission
+        permission.delete()
+        return super(Service, self).delete(*args, **kwargs)
 
     def __str__(self):
         return str(self.name)
 
     def get_absolute_url(self):
-        from django.urls import reverse
         return reverse('service_update', kwargs={'pk': str(self.pk)})
 
 
 # пакет услуг подключаемых клиенту. Расширение системы групп.
 class Package(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True)
+    description = models.TextField(blank=True, verbose_name='Описание')
     price = models.FloatField(blank=True, verbose_name='Цена')
     status = models.BooleanField(default=True, verbose_name='Активен')
     is_create = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
@@ -146,9 +139,20 @@ class Package(models.Model):
             # self.group.permissions.clear()
             self.group.permissions.set(list(permissions))
 
-    def delete(self, using=None, keep_parents=False):
+    def deactivate(self, using=None, keep_parents=False):
         self.status = False
         return super(Package, self).save()
 
     def __str__(self):
-        return self.group.name
+        if self.group:
+            return str(self.group)
+        else:
+            return str(self.pk)
+
+    def delete(self, *args, **kwargs):
+        group = self.group
+        group.delete()
+        super(Package, self).delete(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('package_update', kwargs={'pk': str(self.pk)})

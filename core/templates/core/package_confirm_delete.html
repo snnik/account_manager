@@ -1,0 +1,30 @@
+{% extends "core/index.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card overflow-auto  px-0 my-4 shadow">
+        <div class="card-header">
+            <h5 class="text-center">{{ page_title }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <form method="post">{% csrf_token %}
+                        <p>Are you sure you want to delete "{{ object }}"?</p>
+                        {% if foreign_object %}
+                        <p>Так же будут удалены связанные объекты:</p>
+                        <ul>
+                            {% for obj in foreign_object %}
+                            <li>{{ obj }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        <a class="btn btn-warning float-right mx-3" href="{% url 'package_update' pk %}">Назад</a>
+                        <input class="btn btn-danger float-left mx-3" type="submit" value="Удалить">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content%}
