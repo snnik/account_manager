@@ -4,19 +4,7 @@ from django.contrib.auth.models import User, Permission, Group
 from django.core.validators import RegexValidator, EmailValidator
 from django.contrib.contenttypes.models import ContentType
 from .utils import PasswordGenerator, LoginGenerator
-from django.contrib.admin.models import ADDITION, LogEntry, DELETION, CHANGE
 from django.urls import reverse
-
-
-def write_log(usr, obj, flag):
-    LogEntry.objects.log_action(
-        user_id=usr.pk,
-        content_type_id=ContentType.objects.get_for_model(obj).pk,
-        object_id=obj.pk,
-        object_repr=repr(obj),
-        action_flag=flag,
-        change_message=obj
-    )
 
 
 # Данные о юридичском лице. Расширение стандартного пользователя

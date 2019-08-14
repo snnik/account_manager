@@ -10,7 +10,7 @@ urlpatterns = [
    path('account/<int:user_id>/update', views.update_user, name='user_update'),
    path('account/<int:user_id>/delete', views.delete_user, name='user_delete'),
    # Клиенты
-   path('customer/<int:customer_id>/detail/', views.customer_update, name='account_detail'),
+   path('customer/<int:pk>/detail/', views.UpdateCustomer.as_view(), name='account_detail'),
    path('customer/create/', views.CreateCustomer.as_view(), name='account_create'),
    # path('customer_tst/', views.CustomerCreate.as_view()),
    # path('customer/create/', views.create_customer, name='account_create'),

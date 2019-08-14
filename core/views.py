@@ -16,6 +16,8 @@ from core.mixins import DeleteFormMixin
 from .models import Customer, Service, Package
 from django.contrib.admin.models import ADDITION, DELETION, CHANGE, LogEntry
 from django.core.mail import send_mail
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 def write_log(usr, obj, flag):
@@ -43,53 +45,6 @@ def activate_account(request, customer_id):
     customer = get_object_or_404(Customer, pk=customer_id)
     customer.activate()
     return redirect('accounts_list')
-
-
-@login_required(login_url=reverse_lazy('base_login'))
-@permission_required(('core.add_customer', 'auth.add_user'))
-def create_customer(request):
-    page_context = {'page_title': 'Создание аккаунта'}
-    if request.method == 'POST':
-        customer_form = CustomerForm(request.POST)
-        group_form = GroupSelectForm(request.POST)
-        if customer_form.is_valid() and group_form.is_valid():
-            customer_form.user = request.user
-            customer_form.groups = group_form.cleaned_data['groups']
-            customer_id = customer_form.create_customer()
-            if not customer_form.form_error:
-                return redirect('account_detail', customer_id=customer_id)
-    else:
-        customer_form = CustomerForm()
-        group_form = GroupSelectForm()
-    page_context['customer_form'] = customer_form
-    page_context['account_form'] = group_form
-    page_context['form_error'] = customer_form.form_error
-    return render(request, 'core/customer_detail.html', page_context)
-
-
-@login_required(login_url=reverse_lazy('base_login'))
-@permission_required(('core.change_customer', 'auth.change_user'))
-def customer_update(request, customer_id):
-    context = {'page_title': 'изменение аккаунта'}
-    customer = get_object_or_404(Customer, id=customer_id)
-    account = customer.account
-    if request.method == 'POST':
-        customer_form = CustomerForm(request.POST, instance=customer)
-        group_form = GroupSelectForm(request.POST, instance=account)
-        if customer_form.is_valid() and group_form.is_valid():
-            customer_form.user = request.user
-            customer_form.groups = group_form.cleaned_data['groups']
-            customer_id = customer_form.update_customer()
-            if not customer_form.form_error:
-                return redirect('account_detail', customer_id)
-    else:
-        customer_form = CustomerForm(instance=customer)
-        group_form = GroupSelectForm(instance=account)
-        group_form.fields['groups'].queryset = Group.objects.filter(package__isnull=False)
-    context['customer_form'] = customer_form
-    context['account_form'] = group_form
-    context['form_error'] = customer_form.form_error
-    return render(request, 'core/customer_detail.html', context)
 
 
 class CustomerList(ListViewMixin):
@@ -138,8 +93,42 @@ class CreateCustomer(CreateFormMixin):
             self.object = customer
         except Error as e:
             # Signals/log
-            pass
+            return self.form_invalid((form, group_form,))
         return redirect(self.get_success_url())
+
+
+class UpdateCustomer(UpdateFormMixin):
+
+    page_title = 'Создание аккаунта'
+    form_title = 'Создание аккаунта'
+    permission_required = ('core.change_customer', 'auth.change_user',)
+    form_class = CustomerForm
+    model = Customer
+    success_url = None
+    template_name = 'core/customer_detail.html'
+
+    def get_context_data(self, **kwargs):
+        kwargs['id'] = self.object.pk
+        kwargs['group_form'] = GroupSelectForm(instance=self.object.account)
+        kwargs['group_form'].fields['groups'].queryset = Group.objects.filter(package__isnull=False)
+        return super().get_context_data(**kwargs)
+
+    def form_valid(self, form):
+        group_form = GroupSelectForm(self.request.POST, instance=self.object.account)
+        if not group_form.is_valid():
+            return self.form_invalid((form, group_form))
+
+        customer = form.save(commit=False)
+        try:
+            customer.changed_group(group_form.cleaned_data['groups'])
+            customer.save()
+            self.object = customer
+            write_log(self.request.user, customer, CHANGE)
+        except Error as e:
+            # log
+            return self.form_invalid((form, group_form))
+        return redirect(self.get_success_url())
+
 
 
 # Accounts block
