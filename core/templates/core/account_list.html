@@ -1,22 +1,11 @@
 {% extends "core/list.html" %}
 {% block list %}
     {% for user in user_list %}
-    <tr>
+    <tr {% if not user.is_active %}class="table-danger"{% endif %}>
+        <td hidden = "true">{% url 'user_update' user.pk %}</td>
         <td>{{ user.pk }}</td>
         <td>{{ user.username }}</td>
-        <td>{{user.first_name }} {{user.last_name }}</td>
-        <td>
-            {% if user.is_active %}
-                Активный
-            {% else %}
-                Неактивый
-            {% endif %}
-        </td>
-        <td>
-            <a href="{% url 'user_update' user.pk %}">
-                Edit
-            </a>
-        </td>
+        <td>{{ user.first_name }} {{user.last_name }}</td>
     </tr>
     {% endfor %}
 {% endblock list%}

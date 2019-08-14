@@ -9,7 +9,7 @@
         <div class="card-body">
             <div class="row">
                 <div class="col">
-                    <form method="post">{% csrf_token %}
+                    <form method="post" enctype="multipart/form-data">{% csrf_token %}
                         {% for field in form %}
                         <div class="form-group col">
                             {{ field.label_tag }}
@@ -19,7 +19,10 @@
                         </div>
                         {% endfor %}
                         <a class="btn btn-warning float-left" href="{% url 'services_list' %}">Назад</a>
-                        <button class="btn btn-warning float-right">Сохранить</button>
+                        <button class="btn btn-success float-right">Сохранить</button>
+                        {% if pk %}
+                        <a class="btn btn-danger float-right mx-3" href="{% url 'service_delete' pk %}">Удалить</a>
+                        {% endif %}
                     </form>
                 </div>
                 </div>

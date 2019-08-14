@@ -18,7 +18,7 @@
             <form method="post">{% csrf_token %}
                 <div class="row">
                     <div class="col">
-                        {% for field in customer_form %}
+                        {% for field in form %}
                         <div class="form-group">
                             {{ field.label_tag }}
                             {{ field }}
@@ -28,7 +28,7 @@
                         {% endfor %}
                     </div>
                     <div class="col">
-                        {% for field in account_form %}
+                        {% for field in group_form %}
                         <div class="form-group">
                             {{ field.label_tag }}
                             {{ field }}

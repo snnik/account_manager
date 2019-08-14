@@ -2,24 +2,10 @@
 
 {% block list %}
     {% for service in service_list %}
-    <tr>
+    <tr {% if not service.status %}class="table-danger"{% endif %}>
+        <td hidden = "false">{% url 'service_update' service.pk %}</td>
         <td>{{ service.pk }}</td>
-        <td>{{ service.description }}</td>
-        <td>
-            {% if service.status %}
-                Активный
-            {% else %}
-                Неактивый
-            {% endif %}
-        </td>
-        <td>
-            <a class="btn btn-warning float-right" href="{% url 'service_delete' service.pk %}">
-                Удалить
-            </a>
-            <a class="btn btn-warning float-right" href="{% url 'service_update' service.pk %}">
-                Редактировать
-            </a>
-        </td>
+        <td>{{ service.name }}</td>
     </tr>
     {% endfor %}
 {% endblock list%}

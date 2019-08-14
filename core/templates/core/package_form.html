@@ -35,6 +35,9 @@
                     <div class="col">
                         <a class="btn btn-warning float-left" href="{% url 'package_list' %}">Назад</a>
                         <button class="btn btn-warning float-right">Сохранить</button>
+                        {% if pk %}
+                        <a class="btn btn-danger float-right mx-3" href="{% url 'package_delete' pk %}">Удалить</a>
+                        {% endif %}
                     </div>
                 </div>
             </form>
