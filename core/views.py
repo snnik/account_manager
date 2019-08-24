@@ -130,6 +130,26 @@ class UpdateCustomer(UpdateFormMixin):
         return redirect(self.get_success_url())
 
 
+class CreateAccount(CreateFormMixin):
+    page_title = 'Создание аккаунта'
+    form_title = 'Создание аккаунта'
+    permission_required = ('auth.add_user',)
+    form_class = UserCreationForm
+    model = User
+    success_url = None
+    template_name = 'core/account_detail.html'
+
+    def form_valid(self, form):
+        try:
+            account = User.objects.create_user(
+                username=form.cleaned_data['username'],
+                password=form.cleaned_data['password1']
+            )
+            write_log(self.request.user, account, ADDITION)
+        except Error as e:
+            return self.form_invalid(form)
+        return redirect('user_update', user_id=account.pk)
+
 
 # Accounts block
 @login_required(login_url=reverse_lazy('base_login'))
@@ -449,12 +469,12 @@ def login(request):
 def password_change(request):
     context = {}
     if request.method == 'POST':
-        form = ChangePasswordForm(request.POST)
+        form = ChangePasswordForm(request.user, request.POST)
         if form.is_valid():
             form.save(request.user)
             return HttpResponseRedirect('/')
     else:
-        form = ChangePasswordForm()
+        form = ChangePasswordForm(request.user)
     context['form'] = form
     return render(request, 'core/password_change.html', context)
 
