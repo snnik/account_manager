@@ -7,7 +7,7 @@ urlpatterns = [
    # Пользователь
    path('account/list/', views.AccountList.as_view(), name='user_list'),
    path('account/create', views.CreateAccount.as_view(), name='user_create'),
-   path('account/<int:user_id>/update', views.update_user, name='user_update'),
+   path('account/<int:pk>/update', views.UpdateAccount.as_view(), name='user_update'),
    path('account/<int:user_id>/delete', views.delete_user, name='user_delete'),
    # Клиенты
    path('customer/<int:pk>/detail/', views.UpdateCustomer.as_view(), name='account_detail'),

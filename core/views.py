@@ -145,46 +145,29 @@ class CreateAccount(CreateFormMixin):
                 username=form.cleaned_data['username'],
                 password=form.cleaned_data['password1']
             )
+            account.is_staff = True
+            account.save()
             write_log(self.request.user, account, ADDITION)
         except Error as e:
             return self.form_invalid(form)
-        return redirect('user_update', user_id=account.pk)
+        return redirect('user_update', pk=account.pk)
+
+
+class UpdateAccount(UpdateFormMixin):
+    page_title = 'Редактировать аккаунт'
+    form_title = 'Редактировать аккаунт'
+    permission_required = ('auth.change_user', 'auth.view_user',)
+    form_class = UserChangeForm
+    model = User
+    success_url = None
+    template_name = 'core/account_detail.html'
+
+    def get_context_data(self, **kwargs):
+        kwargs['account_id'] = self.object.pk
+        return super().get_context_data(**kwargs)
 
 
 # Accounts block
-@login_required(login_url=reverse_lazy('base_login'))
-@permission_required('auth.add_user')
-def create_user(request):
-    page_context = {'page_title': 'Создание пользователя'}
-    if request.method == 'POST':
-        account_form = AccountCreationForm(request.POST)
-        if account_form.is_valid():
-            account = account_form.account_create(user_id=request.user.pk)
-            if not account_form.errors:
-                return redirect('user_update', user_id=account.pk)
-    else:
-        account_form = AccountCreationForm()
-    page_context['form'] = account_form
-    return render(request, 'core/account_detail.html', page_context)
-
-
-@login_required(login_url=reverse_lazy('base_login'))
-@permission_required(('auth.change_user', 'auth.view_user'))
-def update_user(request, user_id):
-    page_context = {}
-    account = get_object_or_404(User, pk=user_id)
-    if request.method == 'POST':
-        account_form = AccountChangeForm(request.POST, instance=account)
-        if account_form.is_valid():
-            account_form.save(user_id=request.user.pk)
-    else:
-        account_form = AccountChangeForm(instance=account)
-    page_context['page_title'] = 'Изменение пользователя: ' + str(account) + ' ID: ' + str(account.pk)
-    page_context['account_id'] = user_id
-    page_context['form'] = account_form
-    return render(request, 'core/account_detail.html', page_context)
-
-
 @login_required(login_url=reverse_lazy('base_login'))
 @permission_required('auth.delete_user')
 def delete_user(request, user_id):
